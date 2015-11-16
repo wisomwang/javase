@@ -1,0 +1,1546 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<!-- saved from url=(0033)http://ifeve.com/java-threadpool/ -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head profile="http://gmpg.org/xfn/11"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><script async="" type="text/javascript" src="./聊聊并发（三）Java线程池的分析和使用_files/ca-pub-9394337417063147.js"></script><script src="./聊聊并发（三）Java线程池的分析和使用_files/shares.php" charset="utf-8"></script><script src="./聊聊并发（三）Java线程池的分析和使用_files/id.php" charset="utf-8"></script>
+
+
+<title>聊聊并发（三）Java线程池的分析和使用 | 并发编程网 - ifeve.com</title>
+<meta name="description" content="让天下没有难学的技术">
+
+<link rel="alternate" type="application/rss+xml" title="并发编程网 – ifeve.com RSS Feed" href="http://ifeve.com/feed/">
+<link rel="alternate" type="application/atom+xml" title="并发编程网 – ifeve.com Atom Feed" href="http://ifeve.com/feed/atom/"> 
+<link rel="pingback" href="http://ifeve.com/xmlrpc.php">
+
+<link rel="stylesheet" href="./聊聊并发（三）Java线程池的分析和使用_files/style.css" type="text/css">
+<link rel="stylesheet" href="./聊聊并发（三）Java线程池的分析和使用_files/comment-style.css" type="text/css">
+
+ 
+
+<!-- All in One SEO Pack 2.2.7.1 by Michael Torbert of Semper Fi Web Design[258,311] -->
+<meta name="description" itemprop="description" content="作者：方腾飞 原文发表于infoQ：http://www.infoq.com/cn/articles/java-threadPool 1.   ">
+
+<meta name="keywords" itemprop="keywords" content="thread,thread pool">
+
+<link rel="canonical" href="./聊聊并发（三）Java线程池的分析和使用_files/聊聊并发（三）Java线程池的分析和使用.html">
+<!-- /all in one seo pack -->
+<link rel="alternate" type="application/rss+xml" title="并发编程网 - ifeve.com » 聊聊并发（三）Java线程池的分析和使用评论Feed" href="http://ifeve.com/java-threadpool/feed/">
+		<script type="text/javascript">
+			window._wpemojiSettings = {"baseUrl":"http:\/\/s.w.org\/images\/core\/emoji\/72x72\/","ext":".png","source":{"concatemoji":"http:\/\/ifeve.com\/wp-includes\/js\/wp-emoji-release.min.js?ver=4.2.5"}};
+			!function(a,b,c){function d(a){var c=b.createElement("canvas"),d=c.getContext&&c.getContext("2d");return d&&d.fillText?(d.textBaseline="top",d.font="600 32px Arial","flag"===a?(d.fillText(String.fromCharCode(55356,56812,55356,56807),0,0),c.toDataURL().length>3e3):(d.fillText(String.fromCharCode(55357,56835),0,0),0!==d.getImageData(16,16,1,1).data[0])):!1}function e(a){var c=b.createElement("script");c.src=a,c.type="text/javascript",b.getElementsByTagName("head")[0].appendChild(c)}var f,g;c.supports={simple:d("simple"),flag:d("flag")},c.DOMReady=!1,c.readyCallback=function(){c.DOMReady=!0},c.supports.simple&&c.supports.flag||(g=function(){c.readyCallback()},b.addEventListener?(b.addEventListener("DOMContentLoaded",g,!1),a.addEventListener("load",g,!1)):(a.attachEvent("onload",g),b.attachEvent("onreadystatechange",function(){"complete"===b.readyState&&c.readyCallback()})),f=c.source||{},f.concatemoji?e(f.concatemoji):f.wpemoji&&f.twemoji&&(e(f.twemoji),e(f.wpemoji)))}(window,document,window._wpemojiSettings);
+		</script><script src="./聊聊并发（三）Java线程池的分析和使用_files/wp-emoji-release.min.js" type="text/javascript"></script>
+		<style type="text/css">
+img.wp-smiley,
+img.emoji {
+	display: inline !important;
+	border: none !important;
+	box-shadow: none !important;
+	height: 1em !important;
+	width: 1em !important;
+	margin: 0 .07em !important;
+	vertical-align: -0.1em !important;
+	background: none !important;
+	padding: 0 !important;
+}
+</style>
+<link rel="stylesheet" id="yarppWidgetCss-css" href="./聊聊并发（三）Java线程池的分析和使用_files/widget.css" type="text/css" media="all">
+<link rel="stylesheet" id="dwqa-style-css" href="./聊聊并发（三）Java线程池的分析和使用_files/style(1).css" type="text/css" media="all">
+<link rel="stylesheet" id="wp-postratings-css" href="./聊聊并发（三）Java线程池的分析和使用_files/postratings-css.css" type="text/css" media="all">
+<link rel="stylesheet" id="display-authors-widget-styles-css" href="./聊聊并发（三）Java线程池的分析和使用_files/display-authors-widget.css" type="text/css" media="all">
+<script type="text/javascript" src="./聊聊并发（三）Java线程池的分析和使用_files/jquery.js"></script>
+<script type="text/javascript" src="./聊聊并发（三）Java线程池的分析和使用_files/jquery-migrate.min.js"></script>
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://ifeve.com/xmlrpc.php?rsd">
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://ifeve.com/wp-includes/wlwmanifest.xml"> 
+<link rel="prev" title="并发和并行有什么区别？" href="http://ifeve.com/parallel_and_con/">
+<link rel="next" title="聊聊并发（四）深入分析ConcurrentHashMap" href="http://ifeve.com/concurrenthashmap/">
+<meta name="generator" content="WordPress 4.2.5">
+<link rel="shortlink" href="http://ifeve.com/?p=151">
+
+
+<!-- Plugin: Open external links a new window. Plugin by Kristian Risager Larsen, http://kristianrisagerlarsen.dk . Download it at http://wordpress.org/extend/plugins/open-external-links-in-a-new-window/ -->
+<script type="text/javascript">//<![CDATA[
+	function external_links_in_new_windows_loop() {
+		if (!document.links) {
+			document.links = document.getElementsByTagName('a');
+		}
+		var change_link = false;
+		var force = '';
+		var ignore = '';
+
+		for (var t=0; t<document.links.length; t++) {
+			var all_links = document.links[t];
+			change_link = false;
+			
+			if(document.links[t].hasAttribute('onClick') == false) {
+				// forced if the address starts with http (or also https), but does not link to the current domain
+				if(all_links.href.search(/^http/) != -1 && all_links.href.search('ifeve.com') == -1) {
+					// alert('Changeda '+all_links.href);
+					change_link = true;
+				}
+					
+				if(force != '' && all_links.href.search(force) != -1) {
+					// forced
+					// alert('force '+all_links.href);
+					change_link = true;
+				}
+				
+				if(ignore != '' && all_links.href.search(ignore) != -1) {
+					// alert('ignore '+all_links.href);
+					// ignored
+					change_link = false;
+				}
+
+				if(change_link == true) {
+					// alert('Changed '+all_links.href);
+					document.links[t].setAttribute('onClick', 'javascript:window.open(\''+all_links.href+'\'); return false;');
+					document.links[t].removeAttribute('target');
+				}
+			}
+		}
+	}
+	
+	// Load
+	function external_links_in_new_windows_load(func)
+	{	
+		var oldonload = window.onload;
+		if (typeof window.onload != 'function'){
+			window.onload = func;
+		} else {
+			window.onload = function(){
+				oldonload();
+				func();
+			}
+		}
+	}
+
+	external_links_in_new_windows_load(external_links_in_new_windows_loop);
+	//]]></script>
+
+
+<!-- StarBox - the Author Box for Humans 3.0.4, visit: http://wordpress.org/plugins/starbox/ -->
+<!-- /StarBox - the Author Box for Humans -->
+
+<link rel="stylesheet" id="frontend.css-css" href="./聊聊并发（三）Java线程池的分析和使用_files/frontend.css" type="text/css" media="all">
+<script type="text/javascript" src="./聊聊并发（三）Java线程池的分析和使用_files/frontend.js"></script>
+<link rel="stylesheet" id="hidedefault.css-css" href="./聊聊并发（三）Java线程池的分析和使用_files/hidedefault.css" type="text/css" media="all">
+<style type="text/css" media="screen">#wp-admin-bar-user-info .avatar-64 {width:64px}</style>
+	<style type="text/css">.recentcomments a{display:inline !important;padding:0 !important;margin:0 !important;}</style>
+<link rel="stylesheet" type="text/css" href="./聊聊并发（三）Java线程池的分析和使用_files/shCore.css"><link rel="stylesheet" type="text/css" href="./聊聊并发（三）Java线程池的分析和使用_files/shThemeEclipse.css"><style type="text/css" id="syntaxhighlighteranchor"></style>
+
+<script type="text/javascript" src="./聊聊并发（三）Java线程池的分析和使用_files/jscript.js"></script>
+<script type="text/javascript" src="./聊聊并发（三）Java线程池的分析和使用_files/comment.js"></script>
+<script type="text/javascript" src="./聊聊并发（三）Java线程池的分析和使用_files/rollover.js"></script>
+
+<!--[if IE 7]>
+<link rel="stylesheet" href="http://ifeve.com/wp-content/themes/flat/ie7.css" type="text/css" />
+<![endif]-->
+<!--[if IE 8]>
+<link rel="stylesheet" href="http://ifeve.com/wp-content/themes/flat/ie8.css" type="text/css" />
+<![endif]-->
+
+
+<style type="text/css">
+a, .post .title a:hover, .post_meta a:hover, #bread_crumb ul li a:hover, #previous_post a:hover, #next_post a:hover, .post a.more-link:hover, #right_col li a:hover, #copyright li a:hover, #archive_headline #keyword,
+   #comments_wrapper a:hover, #comment_header_right .comment_switch_active a, #comment_header_right .comment_switch_active a:hover, #comment_pager .current
+   { color:#00A19E; }
+
+#no_post a.back:hover, #wp-calendar td a:hover, #wp-calendar #prev a:hover, #wp-calendar #next a:hover, .page_navi a:hover, #submit_comment:hover
+ { background-color:#00A19E; }
+
+#guest_info input:focus, #comment_textarea textarea:focus
+ { border:1px solid #00A19E; }
+
+a:hover
+ { color:#BDC900; }
+
+body { font-size:14px; }
+
+#header { background:url(http://ifeve.com/wp-content/uploads/flat/bg.png) left top; }
+.logo_text a { color:#F5F5F5; }
+#site_description {  border-top:1px solid #BBBBBB; color:#D2D9CC; }
+
+
+</style>
+
+</head>
+
+<body style="zoom: 1;"><div id="BAIDU_DUP_fp_wrapper" style="position: absolute; left: -1px; bottom: -1px; z-index: 0; width: 0px; height: 0px; overflow: hidden; visibility: hidden; display: none;"><iframe id="BAIDU_DUP_fp_iframe" src="./聊聊并发（三）Java线程池的分析和使用_files/o.html" style="width: 0px; height: 0px; visibility: hidden; display: none;"></iframe></div><link href="./聊聊并发（三）Java线程池的分析和使用_files/jiathis_counter.css" rel="stylesheet" type="text/css"><link href="./聊聊并发（三）Java线程池的分析和使用_files/jiathis_share.css" rel="stylesheet" type="text/css"><iframe frameborder="0" style="position: absolute; display: none; opacity: 0;"></iframe><div class="jiathis_style" style="position: absolute; z-index: 1000000000; display: none; top: 50%; left: 50%; overflow: auto;"></div><div class="jiathis_style" style="position: absolute; z-index: 1000000000; display: none; overflow: auto;"></div><iframe frameborder="0" src="./聊聊并发（三）Java线程池的分析和使用_files/jiathis_utility.html" style="display: none;"></iframe>
+
+ <div id="header">
+  <div class="header_menu">
+    <ul id="menu-%e4%b8%bb%e8%8f%9c%e5%8d%95" class="menu"><li id="menu-item-16594" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-16594"><a href="http://ifeve.com/">首页</a></li>
+<li id="menu-item-3432" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-3432"><a href="http://ifeve.com/wp-login.php">登录</a></li>
+<li id="menu-item-17079" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-17079"><a href="http://ifeve.com/questions/">面试题</a></li>
+<li id="menu-item-9219" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-9219 parent_menu"><a href="http://ifeve.com/category/java/">JAVA</a>
+<ul class="sub-menu">
+	<li id="menu-item-16108" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-16108"><a href="http://ifeve.com/java-io/">Java IO 教程</a></li>
+	<li id="menu-item-5283" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5283"><a href="http://ifeve.com/java-nio-all/">Java NIO 教程</a></li>
+	<li id="menu-item-17514" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-17514"><a href="http://ifeve.com/java-reflection/">JAVA Reflection教程</a></li>
+	<li id="menu-item-16239" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-16239"><a href="http://ifeve.com/java-network">Java 网络教程</a></li>
+	<li id="menu-item-4416" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4416"><a href="http://ifeve.com/java-concurrency-thread-directory/">Java并发和多线程</a></li>
+	<li id="menu-item-2767" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2767"><a href="http://ifeve.com/jmm-cookbook/">Java内存模型指南</a></li>
+	<li id="menu-item-2747" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2747"><a href="http://ifeve.com/jmm-faq/">Java内存模型FAQ</a></li>
+	<li id="menu-item-2765" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2765"><a href="http://ifeve.com/syn-jmm/">同步与Java内存模型</a></li>
+	<li id="menu-item-5789" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5789"><a href="http://ifeve.com/oracle-java-concurrency-tutorial/">Oracle官方并发教程</a></li>
+	<li id="menu-item-15316" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-15316"><a href="http://ifeve.com/jvm-optimize/">JVM性能优化系列</a></li>
+	<li id="menu-item-15313" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-15313"><a href="http://ifeve.com/useful-jvm-flags/">JVM实用参数系列</a></li>
+</ul>
+</li>
+<li id="menu-item-7938" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-7938"><a href="http://ifeve.com/category/c/">C++</a></li>
+<li id="menu-item-9220" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-9220 parent_menu"><a href="http://ifeve.com/category/framework/">Framework</a>
+<ul class="sub-menu">
+	<li id="menu-item-12798" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-12798"><a href="http://ifeve.com/disruptor/">Disruptor 框架指南</a></li>
+	<li id="menu-item-12783" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-12783"><a title="Netty" href="http://ifeve.com/category/netty/">Netty</a></li>
+	<li id="menu-item-12791" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-12791"><a href="http://ifeve.com/category/scala/">Scala</a></li>
+	<li id="menu-item-12312" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-12312"><a href="http://ifeve.com/getting-started-with-stom-index/">Storm 入门</a></li>
+	<li id="menu-item-9218" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-9218"><a href="http://ifeve.com/google-guava/">Guava 官方指南</a></li>
+	<li id="menu-item-20471" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-20471"><a href="http://ifeve.com/velocity-guide/">Apache Velocity 官方指南</a></li>
+	<li id="menu-item-21439" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-21439"><a href="http://ifeve.com/storm-translation/">Apache Storm 官方文档</a></li>
+</ul>
+</li>
+<li id="menu-item-555" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-555 parent_menu"><a href="http://ifeve.com/category/concurrency-translation/">其他译文</a>
+<ul class="sub-menu">
+	<li id="menu-item-2777" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-2777"><a href="http://ifeve.com/java-concurrent/">并发基础</a></li>
+	<li id="menu-item-3340" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-3340"><a href="http://ifeve.com/aqs/">j.u.c同步框架</a></li>
+	<li id="menu-item-2769" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2769"><a href="http://ifeve.com/fj/">Fork Join框架</a></li>
+	<li id="menu-item-9221" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-9221"><a href="http://ifeve.com/doug-lea/">Doug Lea 论文</a></li>
+	<li id="menu-item-4643" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4643"><a href="http://ifeve.com/mechanical-sympathy/">Mechanical Sympathy</a></li>
+	<li id="menu-item-6397" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6397"><a href="http://ifeve.com/stm/">软件事务内存导论</a></li>
+	<li id="menu-item-10845" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-10845"><a href="http://ifeve.com/jsr133-cn/">JSR133中文版</a></li>
+</ul>
+</li>
+<li id="menu-item-103" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-has-children menu-item-103 parent_menu"><a href="http://ifeve.com/category/talk-concurrent/">本站原创</a>
+<ul class="sub-menu">
+	<li id="menu-item-2763" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2763"><a href="http://ifeve.com/talk-concurrency/">聊聊并发</a></li>
+	<li id="menu-item-2753" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2753"><a href="http://ifeve.com/java-memory-model-0/">深入理解Java内存模型</a></li>
+	<li id="menu-item-4862" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4862"><a href="http://ifeve.com/from-javaeye-sys-struct/">从Java视角理解系统结构</a></li>
+	<li id="menu-item-4627" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4627"><a href="http://ifeve.com/ali-itu-agile/">阿里内贸团队敏捷实践</a></li>
+</ul>
+</li>
+<li id="menu-item-7119" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-7119 parent_menu"><a href="http://ifeve.com/category/%e5%b9%b6%e5%8f%91%e4%b9%a6%e7%b1%8d/">并发书籍</a>
+<ul class="sub-menu">
+	<li id="menu-item-10846" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-10846"><a href="http://ifeve.com/art-of-java-concurrent-program/">《Java 并发编程的艺术》迷你书</a></li>
+	<li id="menu-item-6042" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6042"><a href="http://ifeve.com/perfbook/">《深入理解并行编程》</a></li>
+	<li id="menu-item-9172" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-9172"><a href="http://ifeve.com/c-plus-plus-concurrency-in-action/">《C++ 并发编程》</a></li>
+	<li id="menu-item-7785" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-7785"><a href="http://ifeve.com/java-7-concurrency-cookbook/">《Java 7 并发编程指南》</a></li>
+	<li id="menu-item-7120" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-7120"><a href="http://ifeve.com/jvm-concurrency">《Java 虚拟机并发编程》</a></li>
+	<li id="menu-item-12360" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-12360"><a href="http://ifeve.com/getting-started-with-stom-index/">《Storm入门》中文版</a></li>
+</ul>
+</li>
+<li id="menu-item-9171" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-9171 parent_menu"><a href="http://ifeve.com/need-you/">加入我们</a>
+<ul class="sub-menu">
+	<li id="menu-item-3246" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3246"><a href="http://ifeve.com/contribute/">我要投稿</a></li>
+	<li id="menu-item-6854" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-6854"><a href="http://ifeve.com/neitui/">内推阿里</a></li>
+</ul>
+</li>
+<li id="menu-item-105" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-105 parent_menu"><a href="http://ifeve.com/about-site/">关于本站</a>
+<ul class="sub-menu">
+	<li id="menu-item-11306" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-11306"><a href="http://ifeve.com/category/%e6%b4%bb%e5%8a%a8/">活动</a></li>
+	<li id="menu-item-1487" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-1487"><a href="http://ifeve.com/sitemap.html">文章归档</a></li>
+	<li id="menu-item-131" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-131"><a href="http://ifeve.com/about-site/about-me/">关于清英</a></li>
+	<li id="menu-item-7600" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-7600"><a href="http://ifeve.com/ads/">广告合作</a></li>
+</ul>
+</li>
+</ul>    </div>
+  <!-- logo -->
+  <h1 class="logo_text"><a href="http://ifeve.com/">并发编程网 - ifeve.com</a></h1>
+<h2 id="site_description">让天下没有难学的技术</h2>
+ </div>
+
+ <div id="main_content" class="clearfix">
+
+  <div id="left_col">
+      <div id="bread_crumb">
+    <ul class="clearfix">
+     <li id="bc_home"><a href="http://ifeve.com/" title="首页">首页</a></li>
+     <li id="bc_cat"><a href="http://ifeve.com/category/talk-concurrent/">本站原创</a></li>     <li class="last">聊聊并发（三）Java线程池的分析和使用</li>
+    </ul>
+   </div>
+   
+   
+   <div class="post_wrap clearfix" id="single">
+    <div class="post">
+     <h3 class="title"><span>聊聊并发（三）Java线程池的分析和使用</span></h3>
+     <div class="post_content">
+      <p>作者：方腾飞 原文发表于infoQ：<a href="http://www.infoq.com/cn/articles/java-threadPool" onclick="javascript:window.open(&#39;http://www.infoq.com/cn/articles/java-threadPool&#39;); return false;">http://www.infoq.com/cn/articles/java-threadPool</a></p>
+<h2>1.&nbsp;&nbsp;&nbsp; 引言</h2>
+<p>合理利用线程池能够带来三个好处。第一：降低资源消耗。通过重复利用已创建的线程降低线程创建和销毁造成的消耗。第二：提高响应速度。当任务到达时，任务可以不需要的等到线程创建就能立即执行。第三：提高线程的可管理性。线程是稀缺资源，如果无限制的创建，不仅会消耗系统资源，还会降低系统的稳定性，使用线程池可以进行统一的分配，调优和监控。但是要做到合理的利用线程池，必须对其原理了如指掌。</p>
+<p><span id="more-151"></span></p>
+<h2>2.线程池的使用</h2>
+<h2>线程池的创建</h2>
+<p>我们可以通过ThreadPoolExecutor来创建一个线程池。</p>
+<div id="highlighter_680945" class="syntaxhighlighter  "><div class="bar"><div class="toolbar"><a href="http://ifeve.com/java-threadpool/#viewSource" title="查看源代码" class="item viewSource" style="width: 16px; height: 16px;">查看源代码</a><div class="item copyToClipboard"><embed width="16" height="16" id="highlighter_680945_clipboard" type="application/x-shockwave-flash" title="复制到剪贴板" allowscriptaccess="always" wmode="transparent" flashvars="highlighterId=highlighter_680945" menu="false" src="http://ifeve.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/scripts/clipboard.swf"></div><a href="http://ifeve.com/java-threadpool/#printSource" title="打印" class="item printSource" style="width: 16px; height: 16px;">打印</a><a href="http://ifeve.com/java-threadpool/#about" title="帮助" class="item about" style="width: 16px; height: 16px;">帮助</a></div></div><div class="lines"><div class="line alt1"><table><tbody><tr><td class="number"><code>1</code></td><td class="content"><code class="keyword">new</code> <code class="plain">ThreadPoolExecutor(corePoolSize, maximumPoolSize,</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>2</code></td><td class="content"><code class="plain">keepAliveTime, milliseconds,runnableTaskQueue, threadFactory,handler);</code></td></tr></tbody></table></div></div></div>
+<p>创建一个线程池需要输入几个参数：</p>
+<ul>
+<li>corePoolSize（线程池的基本大小）：当提交一个任务到线程池时，线程池会创建一个线程来执行任务，即使其他空闲的基本线程能够执行新任务也会创建线程，等到需要执行的任务数大于线程池基本大小时就不再创建。如果调用了线程池的prestartAllCoreThreads方法，线程池会提前创建并启动所有基本线程。</li>
+<li>runnableTaskQueue（任务队列）：用于保存等待执行的任务的阻塞队列。可以选择以下几个阻塞队列。</li>
+</ul>
+<ol>
+<li>ArrayBlockingQueue：是一个基于数组结构的有界阻塞队列，此队列按 FIFO（先进先出）原则对元素进行排序。</li>
+<li>LinkedBlockingQueue：一个基于链表结构的阻塞队列，此队列按FIFO （先进先出） 排序元素，吞吐量通常要高于ArrayBlockingQueue。静态工厂方法Executors.newFixedThreadPool()使用了这个队列。</li>
+<li>SynchronousQueue：一个不存储元素的阻塞队列。每个插入操作必须等到另一个线程调用移除操作，否则插入操作一直处于阻塞状态，吞吐量通常要高于LinkedBlockingQueue，静态工厂方法Executors.newCachedThreadPool使用了这个队列。</li>
+<li>PriorityBlockingQueue：一个具有优先级得无限阻塞队列。</li>
+</ol>
+<ul>
+<li>maximumPoolSize（线程池最大大小）：线程池允许创建的最大线程数。如果队列满了，并且已创建的线程数小于最大线程数，则线程池会再创建新的线程执行任务。值得注意的是如果使用了无界的任务队列这个参数就没什么效果。</li>
+<li>ThreadFactory：用于设置创建线程的工厂，可以通过线程工厂给每个创建出来的线程设置更有意义的名字，Debug和定位问题时非常又帮助。</li>
+</ul>
+<p>RejectedExecutionHandler（饱和策略）：当队列和线程池都满了，说明线程池处于饱和状态，那么必须采取一种策略处理提交的新任务。这个策略默认情况下是AbortPolicy，表示无法处理新任务时抛出异常。以下是JDK1.5提供的四种策略。n&nbsp; AbortPolicy：直接抛出异常。</p>
+<ol>
+<li>CallerRunsPolicy：只用调用者所在线程来运行任务。</li>
+<li>DiscardOldestPolicy：丢弃队列里最近的一个任务，并执行当前任务。</li>
+<li>DiscardPolicy：不处理，丢弃掉。</li>
+<li>当然也可以根据应用场景需要来实现RejectedExecutionHandler接口自定义策略。如记录日志或持久化不能处理的任务。</li>
+</ol>
+<ul>
+<li>keepAliveTime（线程活动保持时间）：线程池的工作线程空闲后，保持存活的时间。所以如果任务很多，并且每个任务执行的时间比较短，可以调大这个时间，提高线程的利用率。</li>
+<li>TimeUnit（线程活动保持时间的单位）：可选的单位有天（DAYS），小时（HOURS），分钟（MINUTES），毫秒(MILLISECONDS)，微秒(MICROSECONDS, 千分之一毫秒)和毫微秒(NANOSECONDS, 千分之一微秒)。</li>
+</ul>
+<p><b>向线程池提交任务</b></p>
+<p>我们可以使用execute提交的任务，但是execute方法没有返回值，所以无法判断任务知否被线程池执行成功。通过以下代码可知execute方法输入的任务是一个Runnable类的实例。</p>
+<div id="highlighter_530430" class="syntaxhighlighter  "><div class="bar"><div class="toolbar"><a href="http://ifeve.com/java-threadpool/#viewSource" title="查看源代码" class="item viewSource" style="width: 16px; height: 16px;">查看源代码</a><div class="item copyToClipboard"><embed width="16" height="16" id="highlighter_530430_clipboard" type="application/x-shockwave-flash" title="复制到剪贴板" allowscriptaccess="always" wmode="transparent" flashvars="highlighterId=highlighter_530430" menu="false" src="http://ifeve.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/scripts/clipboard.swf"></div><a href="http://ifeve.com/java-threadpool/#printSource" title="打印" class="item printSource" style="width: 16px; height: 16px;">打印</a><a href="http://ifeve.com/java-threadpool/#about" title="帮助" class="item about" style="width: 16px; height: 16px;">帮助</a></div></div><div class="lines"><div class="line alt1"><table><tbody><tr><td class="number"><code>01</code></td><td class="content"><code class="plain">threadsPool.execute(</code><code class="keyword">new</code> <code class="plain">Runnable() {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>02</code></td><td class="content"><code class="color1">@Override</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>03</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>04</code></td><td class="content"><code class="keyword">public</code> <code class="keyword">void</code> <code class="plain">run() {</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>05</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>06</code></td><td class="content"><code class="comments">// TODO Auto-generated method stub</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>07</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>08</code></td><td class="content"><code class="plain">}</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>09</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>10</code></td><td class="content"><code class="plain">});</code></td></tr></tbody></table></div></div></div>
+<p>我们也可以使用submit&nbsp;方法来提交任务，它会返回一个future,那么我们可以通过这个future来判断任务是否执行成功，通过future的get方法来获取返回值，get方法会阻塞住直到任务完成，而使用get(long timeout, TimeUnit unit)方法则会阻塞一段时间后立即返回，这时有可能任务没有执行完。</p>
+<div id="highlighter_768580" class="syntaxhighlighter  "><div class="bar"><div class="toolbar"><a href="http://ifeve.com/java-threadpool/#viewSource" title="查看源代码" class="item viewSource" style="width: 16px; height: 16px;">查看源代码</a><div class="item copyToClipboard"><embed width="16" height="16" id="highlighter_768580_clipboard" type="application/x-shockwave-flash" title="复制到剪贴板" allowscriptaccess="always" wmode="transparent" flashvars="highlighterId=highlighter_768580" menu="false" src="http://ifeve.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/scripts/clipboard.swf"></div><a href="http://ifeve.com/java-threadpool/#printSource" title="打印" class="item printSource" style="width: 16px; height: 16px;">打印</a><a href="http://ifeve.com/java-threadpool/#about" title="帮助" class="item about" style="width: 16px; height: 16px;">帮助</a></div></div><div class="lines"><div class="line alt1"><table><tbody><tr><td class="number"><code>01</code></td><td class="content"><code class="keyword">try</code> <code class="plain">{</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>02</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>03</code></td><td class="content"><code class="plain">Object s = future.get();</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>04</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>05</code></td><td class="content"><code class="plain">} </code><code class="keyword">catch</code> <code class="plain">(InterruptedException e) {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>06</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>07</code></td><td class="content"><code class="comments">// 处理中断异常</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>08</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>09</code></td><td class="content"><code class="plain">} </code><code class="keyword">catch</code> <code class="plain">(ExecutionException e) {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>10</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>11</code></td><td class="content"><code class="comments">// 处理无法执行任务异常</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>12</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>13</code></td><td class="content"><code class="plain">} </code><code class="keyword">finally</code> <code class="plain">{</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>14</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>15</code></td><td class="content"><code class="comments">// 关闭线程池</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>16</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>17</code></td><td class="content"><code class="plain">executor.shutdown();</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>18</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>19</code></td><td class="content"><code class="plain">}</code></td></tr></tbody></table></div></div></div>
+<h2>线程池的关闭</h2>
+<p>我们可以通过调用线程池的shutdown或shutdownNow方法来关闭线程池，但是它们的实现原理不同，shutdown的原理是只是将线程池的状态设置成SHUTDOWN状态，然后中断所有没有正在执行任务的线程。shutdownNow的原理是遍历线程池中的工作线程，然后逐个调用线程的interrupt方法来中断线程，所以无法响应中断的任务可能永远无法终止。shutdownNow会首先将线程池的状态设置成STOP，然后尝试停止所有的正在执行或暂停任务的线程，并返回等待执行任务的列表。</p>
+<p>只要调用了这两个关闭方法的其中一个，isShutdown方法就会返回true。当所有的任务都已关闭后,才表示线程池关闭成功，这时调用isTerminaed方法会返回true。至于我们应该调用哪一种方法来关闭线程池，应该由提交到线程池的任务特性决定，通常调用shutdown来关闭线程池，如果任务不一定要执行完，则可以调用shutdownNow。</p>
+<h2>3.&nbsp;&nbsp;&nbsp; 线程池的分析</h2>
+<p><b>流程分析</b>：线程池的主要工作流程如下图：</p>
+<p><a href="http://ifeve.com/java_threadpool/java%e7%ba%bf%e7%a8%8b%e6%b1%a0%e4%b8%bb%e8%a6%81%e5%b7%a5%e4%bd%9c%e6%b5%81%e7%a8%8b/" rel="attachment wp-att-237"><img class="alignnone size-full wp-image-237" alt="Java线程池主要工作流程" src="./聊聊并发（三）Java线程池的分析和使用_files/Java线程池主要工作流程.jpg" width="500" height="293"></a></p>
+<p>从上图我们可以看出，当提交一个新任务到线程池时，线程池的处理流程如下：</p>
+<ol>
+<li>首先线程池判断<b>基本线程池</b>是否已满？没满，创建一个工作线程来执行任务。满了，则进入下个流程。</li>
+<li>其次线程池判断<b>工作队列</b>是否已满？没满，则将新提交的任务存储在工作队列里。满了，则进入下个流程。</li>
+<li>最后线程池判断<b>整个线程池</b>是否已满？没满，则创建一个新的工作线程来执行任务，满了，则交给饱和策略来处理这个任务。</li>
+</ol>
+<p><b>源码分析。</b>上面的流程分析让我们很直观的了解的线程池的工作原理，让我们再通过源代码来看看是如何实现的。线程池执行任务的方法如下：</p>
+<div id="highlighter_462060" class="syntaxhighlighter  "><div class="bar      show"><div class="toolbar"><a href="http://ifeve.com/java-threadpool/#viewSource" title="查看源代码" class="item viewSource" style="width: 16px; height: 16px;">查看源代码</a><div class="item copyToClipboard"><embed width="16" height="16" id="highlighter_462060_clipboard" type="application/x-shockwave-flash" title="复制到剪贴板" allowscriptaccess="always" wmode="transparent" flashvars="highlighterId=highlighter_462060" menu="false" src="http://ifeve.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/scripts/clipboard.swf"></div><a href="http://ifeve.com/java-threadpool/#printSource" title="打印" class="item printSource" style="width: 16px; height: 16px;">打印</a><a href="http://ifeve.com/java-threadpool/#about" title="帮助" class="item about" style="width: 16px; height: 16px;">帮助</a></div></div><div class="lines"><div class="line alt1"><table><tbody><tr><td class="number"><code>01</code></td><td class="content"><code class="keyword">public</code> <code class="keyword">void</code> <code class="plain">execute(Runnable command) {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>02</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>03</code></td><td class="content"><code class="keyword">if</code> <code class="plain">(command == </code><code class="keyword">null</code><code class="plain">)</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>04</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>05</code></td><td class="content"><code class="keyword">throw</code> <code class="keyword">new</code> <code class="plain">NullPointerException();</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>06</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>07</code></td><td class="content"><code class="comments">//如果线程数小于基本线程数，则创建线程并执行当前任务</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>08</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>09</code></td><td class="content"><code class="keyword">if</code> <code class="plain">(poolSize &gt;= corePoolSize || !addIfUnderCorePoolSize(command)) {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>10</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>11</code></td><td class="content"><code class="comments">//如线程数大于等于基本线程数或线程创建失败，则将当前任务放到工作队列中。</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>12</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>13</code></td><td class="content"><code class="keyword">if</code> <code class="plain">(runState == RUNNING &amp;&amp; workQueue.offer(command)) {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>14</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>15</code></td><td class="content"><code class="keyword">if</code> <code class="plain">(runState != RUNNING || poolSize == </code><code class="value">0</code><code class="plain">)</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>16</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>17</code></td><td class="content"><code class="plain">ensureQueuedTaskHandled(command);</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>18</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>19</code></td><td class="content"><code class="plain">}</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>20</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>21</code></td><td class="content"><code class="comments">//如果线程池不处于运行中或任务无法放入队列，并且当前线程数量小于最大允许的线程数量，则创建一个线程执行任务。</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>22</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>23</code></td><td class="content"><code class="keyword">else</code> <code class="keyword">if</code> <code class="plain">(!addIfUnderMaximumPoolSize(command))</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>24</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>25</code></td><td class="content"><code class="comments">//抛出RejectedExecutionException异常</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>26</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>27</code></td><td class="content"><code class="plain">reject(command); </code><code class="comments">// is shutdown or saturated</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>28</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>29</code></td><td class="content"><code class="plain">}</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>30</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>31</code></td><td class="content"><code class="plain">}</code></td></tr></tbody></table></div></div></div>
+<p><b>工作线程</b>。线程池创建线程时，会将线程封装成工作线程Worker，Worker在执行完任务后，还会无限循环获取工作队列里的任务来执行。我们可以从Worker的run方法里看到这点：</p>
+<div id="highlighter_998040" class="syntaxhighlighter  "><div class="bar"><div class="toolbar"><a href="http://ifeve.com/java-threadpool/#viewSource" title="查看源代码" class="item viewSource" style="width: 16px; height: 16px;">查看源代码</a><div class="item copyToClipboard"><embed width="16" height="16" id="highlighter_998040_clipboard" type="application/x-shockwave-flash" title="复制到剪贴板" allowscriptaccess="always" wmode="transparent" flashvars="highlighterId=highlighter_998040" menu="false" src="http://ifeve.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/scripts/clipboard.swf"></div><a href="http://ifeve.com/java-threadpool/#printSource" title="打印" class="item printSource" style="width: 16px; height: 16px;">打印</a><a href="http://ifeve.com/java-threadpool/#about" title="帮助" class="item about" style="width: 16px; height: 16px;">帮助</a></div></div><div class="lines"><div class="line alt1"><table><tbody><tr><td class="number"><code>01</code></td><td class="content"><code class="keyword">public</code> <code class="keyword">void</code> <code class="plain">run() {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>02</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>03</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">try</code> <code class="plain">{</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>04</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>05</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">Runnable task = firstTask;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>06</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>07</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">firstTask = </code><code class="keyword">null</code><code class="plain">;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>08</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>09</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">while</code> <code class="plain">(task != </code><code class="keyword">null</code> <code class="plain">|| (task = getTask()) != </code><code class="keyword">null</code><code class="plain">) {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>10</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>11</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">runTask(task);</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>12</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>13</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">task = </code><code class="keyword">null</code><code class="plain">;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>14</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>15</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">}</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>16</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>17</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">} </code><code class="keyword">finally</code> <code class="plain">{</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>18</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>19</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">workerDone(</code><code class="keyword">this</code><code class="plain">);</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>20</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>21</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">}</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>22</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>23</code></td><td class="content"><code class="plain">}</code></td></tr></tbody></table></div></div></div>
+<h2>4.&nbsp;&nbsp;&nbsp; 合理的配置线程池</h2>
+<p>要想合理的配置线程池，就必须首先分析任务特性，可以从以下几个角度来进行分析：</p>
+<ol>
+<li>任务的性质：CPU密集型任务，IO密集型任务和混合型任务。</li>
+<li>任务的优先级：高，中和低。</li>
+<li>任务的执行时间：长，中和短。</li>
+<li>任务的依赖性：是否依赖其他系统资源，如数据库连接。</li>
+</ol>
+<p>任务性质不同的任务可以用不同规模的线程池分开处理。CPU密集型任务配置尽可能少的线程数量，如配置N<sub>cpu</sub>+1个线程的线程池。IO密集型任务则由于需要等待IO操作，线程并不是一直在执行任务，则配置尽可能多的线程，如2*N<sub>cpu</sub>。混合型的任务，如果可以拆分，则将其拆分成一个CPU密集型任务和一个IO密集型任务，只要这两个任务执行的时间相差不是太大，那么分解后执行的吞吐率要高于串行执行的吞吐率，如果这两个任务执行时间相差太大，则没必要进行分解。我们可以通过Runtime.getRuntime().availableProcessors()方法获得当前设备的CPU个数。</p>
+<p>优先级不同的任务可以使用优先级队列PriorityBlockingQueue来处理。它可以让优先级高的任务先得到执行，需要注意的是如果一直有优先级高的任务提交到队列里，那么优先级低的任务可能永远不能执行。</p>
+<p>执行时间不同的任务可以交给不同规模的线程池来处理，或者也可以使用优先级队列，让执行时间短的任务先执行。</p>
+<p>依赖数据库连接池的任务，因为线程提交SQL后需要等待数据库返回结果，如果等待的时间越长CPU空闲时间就越长，那么线程数应该设置越大，这样才能更好的利用CPU。</p>
+<p><b>建议使用有界队列</b>，有界队列能增加系统的稳定性和预警能力，可以根据需要设大一点，比如几千。有一次我们组使用的后台任务线程池的队列和线程池全满了，不断的抛出抛弃任务的异常，通过排查发现是数据库出现了问题，导致执行SQL变得非常缓慢，因为后台任务线程池里的任务全是需要向数据库查询和插入数据的，所以导致线程池里的工作线程全部阻塞住，任务积压在线程池里。如果当时我们设置成无界队列，线程池的队列就会越来越多，有可能会撑满内存，导致整个系统不可用，而不只是后台任务出现问题。当然我们的系统所有的任务是用的单独的服务器部署的，而我们使用不同规模的线程池跑不同类型的任务，但是出现这样问题时也会影响到其他任务。</p>
+<h2>5.&nbsp;&nbsp;&nbsp; 线程池的监控</h2>
+<p><b>通过线程池提供的参数进行监控</b>。线程池里有一些属性在监控线程池的时候可以使用</p>
+<ul>
+<li>taskCount：线程池需要执行的任务数量。</li>
+<li>completedTaskCount：线程池在运行过程中已完成的任务数量。小于或等于taskCount。</li>
+<li>largestPoolSize：线程池曾经创建过的最大线程数量。通过这个数据可以知道线程池是否满过。如等于线程池的最大大小，则表示线程池曾经满了。</li>
+<li>getPoolSize:线程池的线程数量。如果线程池不销毁的话，池里的线程不会自动销毁，所以这个大小只增不减。</li>
+<li>getActiveCount：获取活动的线程数。</li>
+</ul>
+<p><b>通过扩展线程池进行监控</b>。通过继承线程池并重写线程池的beforeExecute，afterExecute和terminated方法，我们可以在任务执行前，执行后和线程池关闭前干一些事情。如监控任务的平均执行时间，最大执行时间和最小执行时间等。这几个方法在线程池里是空方法。如：</p>
+<div id="highlighter_637156" class="syntaxhighlighter  "><div class="bar"><div class="toolbar"><a href="http://ifeve.com/java-threadpool/#viewSource" title="查看源代码" class="item viewSource" style="width: 16px; height: 16px;">查看源代码</a><div class="item copyToClipboard"><embed width="16" height="16" id="highlighter_637156_clipboard" type="application/x-shockwave-flash" title="复制到剪贴板" allowscriptaccess="always" wmode="transparent" flashvars="highlighterId=highlighter_637156" menu="false" src="http://ifeve.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/scripts/clipboard.swf"></div><a href="http://ifeve.com/java-threadpool/#printSource" title="打印" class="item printSource" style="width: 16px; height: 16px;">打印</a><a href="http://ifeve.com/java-threadpool/#about" title="帮助" class="item about" style="width: 16px; height: 16px;">帮助</a></div></div><div class="lines"><div class="line alt1"><table><tbody><tr><td class="number"><code>1</code></td><td class="content"><code class="plain">&lt;b&gt;protected&lt;/b&gt; &lt;b&gt;void&lt;/b&gt; beforeExecute(Thread t, Runnable r) { }</code></td></tr></tbody></table></div></div></div>
+<h2>6.&nbsp;&nbsp;&nbsp; 参考资料</h2>
+<ul>
+<li>Java并发编程实战。</li>
+<li>JDK1.6源码。</li>
+</ul>
+<div style="margin-top: 15px; font-style: italic">
+<p><strong>原创文章，转载请注明：</strong> 转载自<a href="http://ifeve.com/">并发编程网 – ifeve.com</a></p>
+<p><strong>本文链接地址:</strong> <a href="./聊聊并发（三）Java线程池的分析和使用_files/聊聊并发（三）Java线程池的分析和使用.html">聊聊并发（三）Java线程池的分析和使用</a></p>
+</div>
+<p style="margin-top: 0; margin-bottom: 15px; color: #888888; font-size: 80%; font-style: italic">文章的脚注信息由WordPress的<a href="http://easwy.com/blog/wordpress/wp-posturl/" style="color: #8888FF; text-decoration: underline;" onclick="javascript:window.open(&#39;http://easwy.com/blog/wordpress/wp-posturl/&#39;); return false;">wp-posturl插件</a>自动生成</p>
+<div style="clear:both; margin-top:5px; margin-bottom:5px;"></div><div style="float:left"><!-- JiaThis Button BEGIN -->
+<div id="jiathis_style_32x32">
+	<a class="jiathis_button_qzone" title="分享到QQ空间"><span class="jiathis_txt jtico jtico_qzone"></span></a>
+	<a class="jiathis_button_tsina" title="分享到新浪微博"><span class="jiathis_txt jtico jtico_tsina"></span></a>
+	<a class="jiathis_button_tqq" title="分享到腾讯微博"><span class="jiathis_txt jtico jtico_tqq"></span></a>
+	<a class="jiathis_button_renren" title="分享到人人网"><span class="jiathis_txt jtico jtico_renren"></span></a>
+	<a class="jiathis_button_kaixin001" title="分享到开心网"><span class="jiathis_txt jtico jtico_kaixin001"></span></a>
+	<a href="http://www.jiathis.com/share/" class="jiathis jiathis_txt jtico jtico_jiathis" onclick="javascript:window.open(&#39;http://www.jiathis.com/share/&#39;); return false;"></a>
+	<a class="jiathis_counter_style"><span class="jiathis_button_expanded jiathis_counter jiathis_bubble_style" id="jiathis_counter_67" title="累计分享48次">48</span></a>
+</div>
+<script type="text/javascript" src="./聊聊并发（三）Java线程池的分析和使用_files/jia.js" charset="utf-8"></script><script type="text/javascript" src="./聊聊并发（三）Java线程池的分析和使用_files/plugin.client.js" charset="utf-8"></script>
+<!-- JiaThis Button END --></div><div style="clear:both; margin-top:5px; margin-bottom:5px;"></div>
+                         <div class="abh_box abh_box_down abh_box_business"><ul class="abh_tabs"> <li class="abh_about abh_active"><a href="http://ifeve.com/java-threadpool/#abh_about">About</a></li> <li class="abh_posts"><a href="http://ifeve.com/java-threadpool/#abh_posts">Latest Posts</a></li></ul><div class="abh_tab_content"><section class="vcard abh_about_tab abh_tab" style="display:block"><div class="abh_image"><a href="http://weibo.com/kirals" class="url" title="方 腾飞" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;"><img alt="" src="./聊聊并发（三）Java线程池的分析和使用_files/a21e2b8f4893347e62eeca7597f04ebc" srcset="http://gravatar0.233.wiki/avatar/a21e2b8f4893347e62eeca7597f04ebc?s=160&amp;d=mm&amp;r=g 2x" class="avatar avatar-80 photo" height="80" width="80"></a></div><div class="abh_social"> </div><div class="abh_text"><h3 class="fn name"><a href="http://weibo.com/kirals" class="url" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">方 腾飞</a></h3><div class="abh_job"></div><div class="description note abh_description">花名清英，并发网创始人，蚂蚁金服技术专家。目前工作于支付宝微贷事业部，关注互联网金融，并发编程和敏捷实践。</div></div> </section><section class="abh_posts_tab abh_tab"><div class="abh_image"><a href="http://weibo.com/kirals" class="url" title="方 腾飞" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;"><img alt="" src="./聊聊并发（三）Java线程池的分析和使用_files/a21e2b8f4893347e62eeca7597f04ebc" srcset="http://gravatar0.233.wiki/avatar/a21e2b8f4893347e62eeca7597f04ebc?s=160&amp;d=mm&amp;r=g 2x" class="avatar avatar-80 photo" height="80" width="80"></a></div><div class="abh_social"> </div><div class="abh_text"><h4>Latest posts by 方 腾飞 <span class="abh_allposts">(<a href="http://ifeve.com/author/admin/">see all</a>)</span></h4><div class="abh_description note"><ul>				<li>					<a href="http://ifeve.com/ali-think-12/">阿里感悟（十一）如何准备面试</a><span> - 2015 年 10 月 6 日</span>				</li>				<li>					<a href="http://ifeve.com/think-in-ali-10/">阿里感悟（十）如何写好简历</a><span> - 2015 年 10 月 6 日</span>				</li>				<li>					<a href="http://ifeve.com/zookeeper-apache/">《ZooKeeper官方指南》翻译邀请</a><span> - 2015 年 10 月 5 日</span>				</li></ul></div></div> </section></div> </div><div class="yarpp-related">
+<h3>Related posts:</h3><ol>
+<li><a href="http://ifeve.com/java-threadpoolexecutor/" rel="bookmark" title="Java线程池架构(一)原理和源码解析">Java线程池架构(一)原理和源码解析 </a></li>
+<li><a href="http://ifeve.com/producers-and-consumers-mode/" rel="bookmark" title="聊聊并发（十）生产者消费者模式">聊聊并发（十）生产者消费者模式 </a></li>
+<li><a href="http://ifeve.com/blocking-threadpool-executor/" rel="bookmark" title="支持生产阻塞的线程池">支持生产阻塞的线程池 </a></li>
+<li><a href="http://ifeve.com/java-blocking-queue/" rel="bookmark" title="聊聊并发（七）——Java中的阻塞队列">聊聊并发（七）——Java中的阻塞队列 </a></li>
+<li><a href="http://ifeve.com/talk-concurrency-forkjoin/" rel="bookmark" title="聊聊并发（八）——Fork/Join框架介绍">聊聊并发（八）——Fork/Join框架介绍 </a></li>
+<li><a href="http://ifeve.com/atomic-operation/" rel="bookmark" title="聊聊并发（五）原子操作的实现原理">聊聊并发（五）原子操作的实现原理 </a></li>
+<li><a href="http://ifeve.com/concurrentlinkedqueue/" rel="bookmark" title="聊聊并发（六）ConcurrentLinkedQueue的实现原理分析">聊聊并发（六）ConcurrentLinkedQueue的实现原理分析 </a></li>
+<li><a href="http://ifeve.com/java-copy-on-write/" rel="bookmark" title="聊聊并发-Java中的Copy-On-Write容器">聊聊并发-Java中的Copy-On-Write容器 </a></li>
+<li><a href="http://ifeve.com/concurrenthashmap/" rel="bookmark" title="聊聊并发（四）深入分析ConcurrentHashMap">聊聊并发（四）深入分析ConcurrentHashMap </a></li>
+<li><a href="http://ifeve.com/volatile/" rel="bookmark" title="聊聊并发（一）深入分析Volatile的实现原理">聊聊并发（一）深入分析Volatile的实现原理 </a></li>
+<li><a href="http://ifeve.com/java-scheduledthreadpoolexecutor/" rel="bookmark" title="Java线程池架构(二)多线程调度器">Java线程池架构(二)多线程调度器 </a></li>
+<li><a href="http://ifeve.com/java-synchronized/" rel="bookmark" title="聊聊并发（二）Java SE1.6中的Synchronized">聊聊并发（二）Java SE1.6中的Synchronized </a></li>
+<li><a href="http://ifeve.com/customizing-concurrency-classes-2/" rel="bookmark" title="定制并发类（二）定制ThreadPoolExecutor类">定制并发类（二）定制ThreadPoolExecutor类 </a></li>
+<li><a href="http://ifeve.com/customizing-concurrency-classes-7-2/" rel="bookmark" title="定制并发类（六）自定义在计划的线程池内运行的任务">定制并发类（六）自定义在计划的线程池内运行的任务 </a></li>
+<li><a href="http://ifeve.com/thread-management-13/" rel="bookmark" title="线程管理（十二）用线程工厂创建线程">线程管理（十二）用线程工厂创建线程 </a></li>
+</ol>
+</div>
+           </div><!-- END .post_content -->
+    </div>
+    <div class="meta">
+          <ul>
+      <li class="post_date clearfix">
+       <span class="date">23</span>
+       <span class="month">Dec</span>
+       <span class="year">2012</span>
+      </li>
+      
+<li class="post_comment">
+16,395 人阅读</li>
+
+      <li class="post_author"><a href="http://ifeve.com/author/admin/" title="由方 腾飞发布" rel="author">方 腾飞</a></li>      <li class="post_category"><a href="http://ifeve.com/category/talk-concurrent/" rel="category tag">本站原创</a></li>       <li class="post_category"><div id="post-ratings-151" class="post-ratings" itemscope="" itemtype="http://schema.org/Article" data-nonce="05d18e9993"><img id="rating_151_1" src="./聊聊并发（三）Java线程池的分析和使用_files/rating_on.gif" alt="好烂啊" title="好烂啊" onmouseover="current_rating(151, 1, &#39;好烂啊&#39;);" onmouseout="ratings_off(4.4, 5, 0);" onclick="rate_post();" onkeypress="rate_post();" style="cursor: pointer; border: 0px;"><img id="rating_151_2" src="./聊聊并发（三）Java线程池的分析和使用_files/rating_on.gif" alt="没价值" title="没价值" onmouseover="current_rating(151, 2, &#39;没价值&#39;);" onmouseout="ratings_off(4.4, 5, 0);" onclick="rate_post();" onkeypress="rate_post();" style="cursor: pointer; border: 0px;"><img id="rating_151_3" src="./聊聊并发（三）Java线程池的分析和使用_files/rating_on.gif" alt="凑合看看" title="凑合看看" onmouseover="current_rating(151, 3, &#39;凑合看看&#39;);" onmouseout="ratings_off(4.4, 5, 0);" onclick="rate_post();" onkeypress="rate_post();" style="cursor: pointer; border: 0px;"><img id="rating_151_4" src="./聊聊并发（三）Java线程池的分析和使用_files/rating_on.gif" alt="还不错" title="还不错" onmouseover="current_rating(151, 4, &#39;还不错&#39;);" onmouseout="ratings_off(4.4, 5, 0);" onclick="rate_post();" onkeypress="rate_post();" style="cursor: pointer; border: 0px;"><img id="rating_151_5" src="./聊聊并发（三）Java线程池的分析和使用_files/rating_half.gif" alt="超赞" title="超赞" onmouseover="current_rating(151, 5, &#39;超赞&#39;);" onmouseout="ratings_off(4.4, 5, 0);" onclick="rate_post();" onkeypress="rate_post();" style="cursor: pointer; border: 0px;"> (<strong>8</strong> votes, average: <strong>4.38</strong> out of 5)<br><span class="post-ratings-text" id="ratings_151_text"></span><meta itemprop="headline" content="聊聊并发（三）Java线程池的分析和使用"><meta itemprop="description" content="作者：方腾飞 原文发表于infoQ：http://www.infoq.com/cn/articles/java-threadPool
+1.    引言
+合理利用线程池能够带来三个好处。第一：降低资源消耗。通过重复利用已创建的线程降低线程创建和销毁造成的消耗。第二：提高响应速度。当任务到达时，任务可以不需要的等到线程创建就能立即执行。第三：提高线程的可管理性。线程是稀缺资源，如果无限制的创建，不..."><meta itemprop="datePublished" content="2012-12-23T00:52:31+00:00"><meta itemprop="url" content="http://ifeve.com/java-threadpool/"><div style="display: none;" itemprop="aggregateRating" itemscope="" itemtype="http://schema.org/AggregateRating"><meta itemprop="bestRating" content="5"><meta itemprop="worstRating" content="1"><meta itemprop="ratingValue" content="4.38"><meta itemprop="ratingCount" content="8"></div></div><div id="post-ratings-151-loading" class="post-ratings-loading">
+			<img src="./聊聊并发（三）Java线程池的分析和使用_files/loading.gif" width="16" height="16" alt="Loading..." title="Loading..." class="post-ratings-image">Loading...</div></li>       <li class="post_comment"><a href="http://ifeve.com/java-threadpool/#comments">16 条评论</a></li>           </ul>
+         </div>
+   </div><!-- END .post_wrap -->
+
+   
+      <div id="comments_wrapper">
+    
+
+
+
+
+<div id="comment_header" class="clearfix">
+
+ <ul id="comment_header_left">
+  <li id="add_comment"><a href="http://ifeve.com/java-threadpool/#respond">发表评论</a></li>
+  <li id="comment_feed"><a href="http://ifeve.com/comments/feed/" title="RSS订阅评论">RSS订阅评论</a></li>
+ </ul>
+
+ <ul id="comment_header_right">
+   <li id="trackback_switch"><a href="javascript:void(0);">Trackback ( 4 )</a></li>
+   <li id="comment_switch" class="comment_switch_active"><a href="javascript:void(0);">评论 ( 16 )</a></li>
+ </ul>
+
+
+
+</div><!-- END #comment_header -->
+
+<div id="comments">
+
+ <div id="comment_area">
+  <!-- start commnet -->
+  <ol class="commentlist">
+	
+ <li class="comment guest-comment even_comment" id="comment-147">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（三）Java线程池的分析和使用_files/6b552991a41338e608a6aab63e35ccc1" srcset="http://gravatar0.233.wiki/avatar/6b552991a41338e608a6aab63e35ccc1?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<span id="commentauthor-147">
+
+nicky
+</span>
+     </li>
+     <li class="comment-date">2013/01/27 10:18上午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-threadpool%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-147&#39;, &#39;comment-147&#39;, &#39;comment-content-147&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-147">
+    <p>你好，看了你的文章，有2点疑问<br>
+1 一个线程是不是只做一个任务？</p>
+<p>2 电脑是双核的， 那不是最多只能同时处理2个线程吗？如何能够同时处理多个线程呢？</p>
+  </div>
+
+<ul class="children">
+
+ <li class="comment admin-comment even_comment_children" id="comment-155">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（三）Java线程池的分析和使用_files/a21e2b8f4893347e62eeca7597f04ebc(1)" srcset="http://gravatar0.233.wiki/avatar/a21e2b8f4893347e62eeca7597f04ebc?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<a id="commentauthor-155" class="url admin-url" href="http://ifeve.com/" rel="external nofollow">
+
+方 腾飞
+</a>
+     </li>
+     <li class="comment-date">2013/01/27 11:40下午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-threadpool%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-155&#39;, &#39;comment-155&#39;, &#39;comment-content-155&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-155">
+    <p>1：一个线程做完一个任务再做另外一个。<br>
+2：如果是不支持超线程的CPU，在同一时刻的确只能处理2个线程，但是并不意味着双核的CPU只能处理两个线程，它可以通过切换上下文来执行多个线程。比如我只有一个大脑，但是我要处理5个人提交的任务，我可以处理完A的事情后，把事情的中间结果保存下，然后再处理B的，然后再读取A的中间结果，处理A的事情。</p>
+  </div>
+
+</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+
+ <li class="comment guest-comment odd_comment" id="comment-193">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（三）Java线程池的分析和使用_files/6b552991a41338e608a6aab63e35ccc1" srcset="http://gravatar0.233.wiki/avatar/6b552991a41338e608a6aab63e35ccc1?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<span id="commentauthor-193">
+
+nicky
+</span>
+     </li>
+     <li class="comment-date">2013/01/30 2:50下午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-threadpool%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-193&#39;, &#39;comment-193&#39;, &#39;comment-content-193&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-193">
+    <p>你好呀，看了你前面的关于介绍synchronized方面的文章，对自己写的一个使用多线程下载的有点晕，<br>
+Pool  &lt;——  Task(Runnable)  &lt;—- void run(synchronized(this){ downLoadService(webUrl,savePath)})<br>
+而在调用的过程中采用是<br>
+for(….)<br>
+{<br>
+pool.execute(new Task(arg1 ,arg2));<br>
+}<br>
+在这个过程中使用synchroinzed方法有效么，当时也是老大催的紧，没时间细想，现在正在看这部分代码，越看越觉得有问题，所以问下。。<br>
+(ps: 怎么评论的时候不能上传图片啊。。。)</p>
+  </div>
+
+</li><!-- #comment-## -->
+
+ <li class="comment admin-comment even_comment" id="comment-195">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（三）Java线程池的分析和使用_files/a21e2b8f4893347e62eeca7597f04ebc(1)" srcset="http://gravatar0.233.wiki/avatar/a21e2b8f4893347e62eeca7597f04ebc?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<a id="commentauthor-195" class="url admin-url" href="http://ifeve.com/" rel="external nofollow">
+
+方 腾飞
+</a>
+     </li>
+     <li class="comment-date">2013/01/30 2:55下午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-threadpool%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-195&#39;, &#39;comment-195&#39;, &#39;comment-content-195&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-195">
+    <p>如果是在线程池的任务里，试用同步没有什么效果的，因为只有一个线程会执行当前任务。</p>
+  </div>
+
+</li><!-- #comment-## -->
+
+ <li class="comment guest-comment odd_comment" id="comment-592">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（三）Java线程池的分析和使用_files/80a5cc27822650d2cca904407be48aac" srcset="http://gravatar1.233.wiki/avatar/80a5cc27822650d2cca904407be48aac?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<span id="commentauthor-592">
+
+icecode
+</span>
+     </li>
+     <li class="comment-date">2013/03/14 3:56下午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-threadpool%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-592&#39;, &#39;comment-592&#39;, &#39;comment-content-592&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-592">
+    <p>“需要注意的是如果一直有优先级高的任务提交到队列里，那么优先级高的任务可能永远不能执行” 这句话应该是错的吧， 应该是“优先级低的任务可能永远不能执行”</p>
+  </div>
+
+<ul class="children">
+
+ <li class="comment admin-comment odd_comment_children" id="comment-593">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（三）Java线程池的分析和使用_files/a21e2b8f4893347e62eeca7597f04ebc(1)" srcset="http://gravatar0.233.wiki/avatar/a21e2b8f4893347e62eeca7597f04ebc?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<a id="commentauthor-593" class="url admin-url" href="http://weibo.com/kirals" rel="external nofollow" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">
+
+方 腾飞
+</a>
+     </li>
+     <li class="comment-date">2013/03/14 4:00下午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-threadpool%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-593&#39;, &#39;comment-593&#39;, &#39;comment-content-593&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-593">
+    <p>对的，多谢指正。</p>
+  </div>
+
+</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+
+ <li class="comment guest-comment even_comment" id="comment-658">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（三）Java线程池的分析和使用_files/saved_resource" srcset="http://gravatar1.233.wiki/avatar/?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo avatar-default" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<span id="commentauthor-658">
+
+dk
+</span>
+     </li>
+     <li class="comment-date">2013/03/19 7:46上午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-threadpool%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-658&#39;, &#39;comment-658&#39;, &#39;comment-content-658&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-658">
+    <p>ThreadFactory：用于设置创建线程的工厂，可以通过线程工厂给每个创建出来的线程设置更有意义的名字，Debug和定位问题时非常又帮助。<br>
+上面是在“创建一个线程池需要输入几个参数”中介绍的，但是没有发现ThreadFactory是哪个地方出现的参数。</p>
+  </div>
+
+<ul class="children">
+
+ <li class="comment admin-comment even_comment_children" id="comment-660">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（三）Java线程池的分析和使用_files/a21e2b8f4893347e62eeca7597f04ebc(1)" srcset="http://gravatar0.233.wiki/avatar/a21e2b8f4893347e62eeca7597f04ebc?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<a id="commentauthor-660" class="url admin-url" href="http://weibo.com/kirals" rel="external nofollow" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">
+
+方 腾飞
+</a>
+     </li>
+     <li class="comment-date">2013/03/19 9:17上午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-threadpool%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-660&#39;, &#39;comment-660&#39;, &#39;comment-content-660&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-660">
+    <p>是我写得有遗漏，已经修正，多谢了。ThreadPoolExecutor有这样的构造方法，在RejectedExecutionHandler前面可以传递java.util.concurrent.ThreadFactory</p>
+<p>ThreadPoolExecutor(int, int, long, java.util.concurrent.TimeUnit, java.util.concurrent.BlockingQueue, java.util.concurrent.ThreadFactory, java.util.concurrent.RejectedExecutionHandler)</p>
+  </div>
+
+</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+
+ <li class="comment guest-comment odd_comment" id="comment-2874">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（三）Java线程池的分析和使用_files/c80dd2970b489ca5a49674369155250d" srcset="http://gravatar0.233.wiki/avatar/c80dd2970b489ca5a49674369155250d?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<span id="commentauthor-2874">
+
+play404
+</span>
+     </li>
+     <li class="comment-date">2013/09/21 2:44上午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-threadpool%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-2874&#39;, &#39;comment-2874&#39;, &#39;comment-content-2874&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-2874">
+    <p>hao!</p>
+  </div>
+
+</li><!-- #comment-## -->
+
+ <li class="comment guest-comment even_comment" id="comment-5327">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <a href="http://weibo.com/1930137045" rel="nofollow" onclick="javascript:window.open(&#39;http://weibo.com/1930137045&#39;); return false;"><img alt="" src="./聊聊并发（三）Java线程池的分析和使用_files/1" class="avatar avatar-35" height="35" width="35"></a>  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<a id="commentauthor-5327" class="url guest-url" href="http://weibo.com/1930137045" rel="external nofollow" onclick="javascript:window.open(&#39;http://weibo.com/1930137045&#39;); return false;">
+
+郑 旭东
+</a>
+     </li>
+     <li class="comment-date">2014/01/21 12:01下午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-threadpool%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-5327&#39;, &#39;comment-5327&#39;, &#39;comment-content-5327&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-5327">
+    <p>一个小问题，一个线程池中执行不同种类并且不相关的任务，是不是一个好的设计？</p>
+  </div>
+
+<ul class="children">
+
+ <li class="comment admin-comment even_comment_children" id="comment-5330">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（三）Java线程池的分析和使用_files/a21e2b8f4893347e62eeca7597f04ebc(1)" srcset="http://gravatar0.233.wiki/avatar/a21e2b8f4893347e62eeca7597f04ebc?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<a id="commentauthor-5330" class="url admin-url" href="http://weibo.com/kirals" rel="external nofollow" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">
+
+方 腾飞
+</a>
+     </li>
+     <li class="comment-date">2014/01/21 2:09下午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-threadpool%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-5330&#39;, &#39;comment-5330&#39;, &#39;comment-content-5330&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-5330">
+    <p>看应用场景的。如果任务数很少，又对任务没有执行速度要求，可以放在一个线程池里。</p>
+  </div>
+
+</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+
+ <li class="comment guest-comment odd_comment" id="comment-18750">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（三）Java线程池的分析和使用_files/73d55e136d47adecb01f0df4883ddcc1" srcset="http://gravatar0.233.wiki/avatar/73d55e136d47adecb01f0df4883ddcc1?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<span id="commentauthor-18750">
+
+real
+</span>
+     </li>
+     <li class="comment-date">2014/05/08 12:14下午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-threadpool%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-18750&#39;, &#39;comment-18750&#39;, &#39;comment-content-18750&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-18750">
+    <p>线程池的配置大小是基本线程池大小还是最大线程池大小呢</p>
+  </div>
+
+</li><!-- #comment-## -->
+
+ <li class="comment guest-comment even_comment" id="comment-26017">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <a href="http://weibo.com/1742384384" rel="nofollow" onclick="javascript:window.open(&#39;http://weibo.com/1742384384&#39;); return false;"><img alt="" src="./聊聊并发（三）Java线程池的分析和使用_files/1(1)" class="avatar avatar-35" height="35" width="35"></a>  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<a id="commentauthor-26017" class="url guest-url" href="http://weibo.com/1742384384" rel="external nofollow" onclick="javascript:window.open(&#39;http://weibo.com/1742384384&#39;); return false;">
+
+阳光天鹅
+</a>
+     </li>
+     <li class="comment-date">2014/12/21 11:30上午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-threadpool%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-26017&#39;, &#39;comment-26017&#39;, &#39;comment-content-26017&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-26017">
+    <p>创建线程池的代码<br>
+new ThreadPoolExecutor(corePoolSize, maximumPoolSize,keepAliveTime, milliseconds,runnableTaskQueue, threadFactory,handler);<br>
+其中的milliseconds应该为timeUnit</p>
+  </div>
+
+</li><!-- #comment-## -->
+
+ <li class="comment guest-comment odd_comment" id="comment-26074">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（三）Java线程池的分析和使用_files/100" class="avatar avatar-35" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<span id="commentauthor-26074">
+
+大巴气
+</span>
+     </li>
+     <li class="comment-date">2015/02/16 9:37上午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-threadpool%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-26074&#39;, &#39;comment-26074&#39;, &#39;comment-content-26074&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-26074">
+    <p>keepAliveTime这个参数有点含糊不清，应该说的再清楚一点。<br>
+例如：超出队列时创建线程(当然必须小于maximumPoolSize)运行任务后，如果再没有其它任务可运行也就空闲（线程池不在提交任务和队列中的任务已经被corePoolSize的线程执行完成），空闲超出这个参数时间线程结束(理解为销毁）。</p>
+<p>while (task != null || (task = getTask()) != null) { 线程调用getTask()进行阻塞。</p>
+<p>    private Runnable getTask() {<br>
+        boolean timedOut = false; // Did the last poll() time out?</p>
+<p>        retry:<br>
+        for (;;) {<br>
+            int c = ctl.get();<br>
+            int rs = runStateOf(c);</p>
+<p>            // Check if queue empty only if necessary.<br>
+            if (rs &gt;= SHUTDOWN &amp;&amp; (rs &gt;= STOP || workQueue.isEmpty())) {<br>
+                decrementWorkerCount();<br>
+                return null;<br>
+            }</p>
+<p>            boolean timed;      // Are workers subject to culling?</p>
+<p>            for (;;) {<br>
+                int wc = workerCountOf(c);<br>
+                timed = allowCoreThreadTimeOut || wc &gt; corePoolSize;</p>
+<p>                if (wc &lt;= maximumPoolSize &amp;&amp; ! (timedOut &amp;&amp; timed)) // 2.因为timeOut=true，timed=true，条件不成立<br>
+                    break;<br>
+                if (compareAndDecrementWorkerCount(c))<br>
+                    return null;           // 返回null，线程结束<br>
+                c = ctl.get();  // Re-read ctl<br>
+                if (runStateOf(c) != rs)<br>
+                    continue retry;<br>
+                // else CAS failed due to workerCount change; retry inner loop<br>
+            }</p>
+<p>            try {<br>
+                Runnable r = timed ?<br>
+                    workQueue.poll(keepAliveTime, TimeUnit.NANOSECONDS) : // 注意这里的poll和take的区别<br>
+                    workQueue.take();<br>
+                if (r != null)<br>
+                    return r;<br>
+                timedOut = true;  // 1. poll在指定的时间内取不到，这timeOut=true<br>
+            } catch (InterruptedException retry) {<br>
+                timedOut = false;<br>
+            }<br>
+        }<br>
+    }</p>
+  </div>
+
+</li><!-- #comment-## -->
+
+ <li class="comment guest-comment even_comment" id="comment-26147">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（三）Java线程池的分析和使用_files/e1a94f341071f9d2d25c20b06840a853" srcset="http://gravatar1.233.wiki/avatar/e1a94f341071f9d2d25c20b06840a853?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<span id="commentauthor-26147">
+
+yankang
+</span>
+     </li>
+     <li class="comment-date">2015/04/24 5:13下午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-threadpool%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-26147&#39;, &#39;comment-26147&#39;, &#39;comment-content-26147&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-26147">
+    <p>可能是jdk版本不同（我的openjdk1.7），我看到的源码和您的有些不一样（如下）， 有一个问题想请教下： 既然worker 每次都执行一个任务， 这里为啥要：w.lock()/unlock()?多谢啦<br>
+final void runWorker(Worker w) {<br>
+        Runnable task = w.firstTask;<br>
+        w.firstTask = null;<br>
+        boolean completedAbruptly = true;<br>
+        try {<br>
+            while (task != null || (task = getTask()) != null) {<br>
+                w.lock();<br>
+                clearInterruptsForTaskRun();<br>
+                try {<br>
+                    beforeExecute(w.thread, task);<br>
+                    Throwable thrown = null;<br>
+                    try {<br>
+                        task.run();<br>
+                    } catch (RuntimeException x) {<br>
+                        thrown = x; throw x;<br>
+                    } catch (Error x) {<br>
+                        thrown = x; throw x;<br>
+                    } catch (Throwable x) {<br>
+                        thrown = x; throw new Error(x);<br>
+                    } finally {<br>
+                        afterExecute(task, thrown);<br>
+                    }<br>
+                } finally {<br>
+                    task = null;<br>
+                    w.completedTasks++;<br>
+                    w.unlock();<br>
+                }<br>
+            }<br>
+            completedAbruptly = false;<br>
+        } finally {<br>
+            processWorkerExit(w, completedAbruptly);<br>
+        }<br>
+    }</p>
+  </div>
+
+</li><!-- #comment-## -->
+
+ <li class="comment guest-comment odd_comment" id="comment-26366">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（三）Java线程池的分析和使用_files/7c543053b5e1fe18b8b5b2900133c299" srcset="http://gravatar0.233.wiki/avatar/7c543053b5e1fe18b8b5b2900133c299?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<span id="commentauthor-26366">
+
+playersfk
+</span>
+     </li>
+     <li class="comment-date">2015/09/02 10:14上午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-threadpool%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-26366&#39;, &#39;comment-26366&#39;, &#39;comment-content-26366&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-26366">
+    <p>请问一下，如果我的任务需要强调逻辑先后顺序，但是加入线程池中可能有先后顺序的任务放到了多个线程执行，就会导致顺序不一致，是不是就不能使用线程池。有没有什么好的方式来做？</p>
+  </div>
+
+</li><!-- #comment-## -->
+  </ol>
+  <!-- comments END -->
+
+  
+ </div><!-- #comment-list END -->
+
+
+ <div id="trackback_area">
+ <!-- start trackback -->
+ 
+  <div id="trackback_url_wrapper">
+   <label for="trackback_url">TrackBack 地址</label>
+   <input type="text" name="trackback_url" id="trackback_url" size="60" value="http://ifeve.com/java-threadpool/trackback/" readonly="readonly" onfocus="this.select()">
+  </div>
+
+  <ol class="commentlist">
+         <li class="comment">
+    <div class="trackback_time">
+     2014/01/14         </div>
+    <div class="trackback_title">
+     Trackback 来自：<a href="http://iamhiko.com/geek/341.html" onclick="javascript:window.open(&#39;http://iamhiko.com/geek/341.html&#39;); return false;">Hiko » Java多线程</a>
+    </div>
+   </li>
+      <li class="comment">
+    <div class="trackback_time">
+     2014/09/03         </div>
+    <div class="trackback_title">
+     Trackback 来自：<a href="http://www.ym910.com/wp/?p=14746" onclick="javascript:window.open(&#39;http://www.ym910.com/wp/?p=14746&#39;); return false;">Java并发编程：线程池的使用 | 易鸣</a>
+    </div>
+   </li>
+      <li class="comment">
+    <div class="trackback_time">
+     2014/09/03         </div>
+    <div class="trackback_title">
+     Trackback 来自：<a href="http://www.zijinxing.com/201409/79422.html" onclick="javascript:window.open(&#39;http://www.zijinxing.com/201409/79422.html&#39;); return false;">Java并发编程：线程池的使用_.net,ADT,AM,API,await,CA,call,CPU,CTE,DK,EF,Finally,GE,HTML,Http,ie,Integer,IT,Java,java2,LED,List,Logs,MIT,MM,nano,Poll,Queue,REST,SEC,Set,Span,String,TIM,XP,代码,作用,使用,关系,关闭,内容,分析,初始化</a>
+    </div>
+   </li>
+      <li class="comment">
+    <div class="trackback_time">
+     2015/09/01         </div>
+    <div class="trackback_title">
+     Trackback 来自：<a href="http://www.rmworking.com/blog/2015/07/22/java%e5%b9%b6%e5%8f%91%e7%bc%96%e7%a8%8b%ef%bc%9a%e7%ba%bf%e7%a8%8b%e6%b1%a0%e7%9a%84%e4%bd%bf%e7%94%a8/" onclick="javascript:window.open(&#39;http://www.rmworking.com/blog/2015/07/22/java%e5%b9%b6%e5%8f%91%e7%bc%96%e7%a8%8b%ef%bc%9a%e7%ba%bf%e7%a8%8b%e6%b1%a0%e7%9a%84%e4%bd%bf%e7%94%a8/&#39;); return false;">Java并发编程：线程池的使用 – R&amp;M</a>
+    </div>
+   </li>
+        </ol>
+
+  <!-- trackback end -->
+ </div><!-- #trackbacklist END -->
+
+ 
+
+
+ 
+ <div class="comment_form_wrapper" id="respond">
+    您必须 <a href="http://ifeve.com/wp-login.php">登陆</a> 后才能发表评论 </div>
+
+ </div><!-- #comment end -->   </div>
+   
+      <div id="previous_next_post_single">
+    <div class="clearfix">
+     <p id="previous_post"><a href="http://ifeve.com/parallel_and_con/" rel="prev">并发和并行有什么区别？</a></p>     <p id="next_post"><a href="http://ifeve.com/concurrenthashmap/" rel="next">聊聊并发（四）深入分析ConcurrentHashMap</a></p>    </div>
+   </div>
+   
+
+  </div><!-- END #left_col -->
+
+  <div id="container"></div>
+
+    <div id="right_col">
+   
+
+<div class="side_box clearfix" id="side_meta_content">
+
+  <ul id="social_link" class="clearfix">
+    <li class="rss_button"><a class="target_blank" href="http://ifeve.com/feed/" target="_blank">rss</a></li>
+       </ul>
+ 
+  <div id="search_area">
+    <form method="get" id="searchform" action="http://ifeve.com/">
+   <div><input id="search_button" class="rollover" type="image" src="./聊聊并发（三）Java线程池的分析和使用_files/search_button.gif" alt="搜索一下" title="搜索一下"></div>
+   <div><input id="search_input" type="text" value="搜索一下" name="s" onfocus="if (this.value == &#39;搜索一下&#39;) this.value = &#39;&#39;;" onblur="if (this.value == &#39;&#39;) this.value = &#39;搜索一下&#39;;"></div>
+  </form>
+   </div>
+ 
+</div>
+
+
+<div id="side_top">
+
+ <div class="side_box widget_text" id="text-17">
+			<div class="textwidget"><!-- 请置于所有广告位代码之前 -->
+<script type="text/javascript" src="./聊聊并发（三）Java线程池的分析和使用_files/m.js"></script>
+<script type="text/javascript">
+BAIDU_CLB_preloadSlots("980251","980252");
+</script><script charset="utf-8" src="./聊聊并发（三）Java线程池的分析和使用_files/ecom"></script>
+<!-- 广告位：右最上 -->
+<script type="text/javascript">BAIDU_CLB_fillSlot("1063991");</script><div id="BAIDU_DUP_wrapper_1063991_0"></div><script charset="utf-8" src="./聊聊并发（三）Java线程池的分析和使用_files/ecom(1)"></script><script charset="utf-8" src="./聊聊并发（三）Java线程池的分析和使用_files/fixed7o.js"></script>
+
+<p>购买<a href="http://s.click.taobao.com/nMgPIwx" onclick="javascript:window.open(&#39;http://s.click.taobao.com/nMgPIwx&#39;); return false;">《Java并发编程的艺术》</a>,UCloud提供云服务</p>
+
+<!-- 广告位：首页右上1 -->
+<script type="text/javascript">BAIDU_CLB_fillSlot("980251");</script><div id="BAIDU_DUP_wrapper_980251_0"><iframe id="baidu_clb_slot_iframe_980251_0" src="./聊聊并发（三）Java线程池的分析和使用_files/聊聊并发（三）Java线程池的分析和使用.html" onload="BAIDU_DUP_CLB_renderFrame(&#39;980251_0&#39;)" width="300" height="80" vspace="0" hspace="0" allowtransparency="true" scrolling="no" marginwidth="0" marginheight="0" frameborder="0" style="border:0; vertical-align:bottom; margin:0; display:block;"></iframe></div>
+
+<br>
+<script language="javascript"> 
+var randomNum = Math.round(Math.random()*2);
+var image=new Array(3);
+image[0]="http://ww4.sinaimg.cn/mw690/005NgQwbgw1evsy1m5y19j308c028747.jpg";
+image[1]="http://ww2.sinaimg.cn/mw690/005NgQwbgw1evsy1kjd94j308c0283yh.jpg";
+image[2]="http://ww1.sinaimg.cn/mw690/005NgQwbgw1evsy1iukeij308c028dfu.jpg";
+var imageUrl=image[randomNum];
+var urls=new Array(3);
+urls[0]="http://yun.lu";
+urls[1]="http://yun.lu";
+urls[2]="http://yun.lu";
+var url = urls[randomNum];
+var adHTML = "<a href='"+url+"' target='_blank'><img src='"+imageUrl+"' border='0'></a>";
+document.write(adHTML);
+</script><a href="http://yun.lu/" onclick="javascript:window.open(&#39;http://yun.lu/&#39;); return false;"><img src="./聊聊并发（三）Java线程池的分析和使用_files/005NgQwbgw1evsy1m5y19j308c028747.jpg" border="0"></a>
+
+<br>
+<!-- 广告位：首页右上2 -->
+<script type="text/javascript">BAIDU_CLB_fillSlot("980252");</script><div id="BAIDU_DUP_wrapper_980252_0"></div>
+<script async="" src="./聊聊并发（三）Java线程池的分析和使用_files/adsbygoogle.js"></script>
+<ins class="adsbygoogle" style="display:inline-block;width:336px;height:280px" data-ad-client="ca-pub-9394337417063147" data-ad-slot="8872369516" data-adsbygoogle-status="done"><ins id="aswift_0_expand" style="display:inline-table;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><ins id="aswift_0_anchor" style="display:block;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><iframe width="336" height="280" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" allowfullscreen="true" onload="var i=this.id,s=window.google_iframe_oncopy,H=s&amp;&amp;s.handlers,h=H&amp;&amp;H[i],w=this.contentWindow,d;try{d=w.document}catch(e){}if(h&amp;&amp;d&amp;&amp;(!d.body||!d.body.firstChild)){if(h.call){setTimeout(h,0)}else if(h.match){try{h=s.upd(h,i)}catch(e){}w.location.replace(h)}}" id="aswift_0" name="aswift_0" style="left:0;position:absolute;top:0;"></iframe></ins></ins></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script></div>
+		</div>
+		<div class="side_box widget_recent_entries" id="recent-posts-2">
+		<h3 class="side_title">近期文章</h3>
+		<ul>
+					<li>
+				<a href="http://ifeve.com/ali-think-12/">阿里感悟（十一）如何准备面试</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/dis-session-manager/">大型网站之分布式会话管理</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/think-in-ali-10/">阿里感悟（十）如何写好简历</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/zookeeper-apache/">《ZooKeeper官方指南》翻译邀请</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-dev-kit-working-with-collection/">《Groovy官方文档》Groovy开发套件-使用集合</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/zookeeperover/">《Apache Zookeeper官方文档》2-综述</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/json-code-problem/">JSON数据乱码问题</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/apache-zookeeper-1/">《Apache zookeeper 官方文档》-1简介</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-guide/">《Groovy官方指南》目录</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/java-io-%e4%b9%8b-outputstream%e6%ba%90%e7%a0%81/">Java IO 之 OutputStream源码</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/lru-cache/">使用Redis作为一个LRU缓存</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-syntax/">《Groovy语言规范》-语法</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-ides/">《Groovy官方文档》3.4 开发环境支持</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-dev-kit-io/">《Groovy官方文档》Groovy开发套件-使用IO</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/how-to-navigatehow-to-navigate-and-make-progress/">Adopt Open JDK官方文档(二)如何使用导航和取得进步？</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/java-io-%e4%b9%8b-inputstream%e6%ba%90%e7%a0%81/">Java IO 之 InputStream源码</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/static-factory-methods-vs-traditional-constructors/">静态工厂方法VS构造器</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-and-java/">《Groovy官方文档》1.3 Groovy和Java比较</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/install-groovy/">《Groovy官方文档》1.2安装Groovy</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-download/">《Groovy官方文档》1.1 下载Groovy</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/fault-tolerance/">容错技术介绍</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy/">《Groovy官方指南》翻译邀请</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/httpifeve-comvelocity-guide-summary/">Apache Velocity官方指南-总结</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/java8/">Java8简明指南</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/adopt-open-jd-10/">Adopt Open JDK官方文档（十）</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/lock-reentrantlock/">《Java并发编程从入门到精通》显示锁Lock和ReentrantLock</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/apache-storm/">Apache Storm 官方文档中文版</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/storm-internal-implementation/">Apache Storm 官方文档 —— 内部技术实现</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/java-concurrency-thread-safe/">《 Java并发编程从入门到精通》Thread安全与不安全</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/storm-acking-framework-implementation/">Apache Storm 官方文档 —— Ack 框架的实现</a>
+						</li>
+				</ul>
+		</div>
+<div class="side_box widget_text" id="text-10">
+			<div class="textwidget"><script async="" src="./聊聊并发（三）Java线程池的分析和使用_files/adsbygoogle.js"></script>
+<!-- 首页－右上－2 -->
+<ins class="adsbygoogle" style="display:inline-block;width:336px;height:280px" data-ad-client="ca-pub-9394337417063147" data-ad-slot="8872369516" data-adsbygoogle-status="done"><ins id="aswift_1_expand" style="display:inline-table;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><ins id="aswift_1_anchor" style="display:block;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><iframe width="336" height="280" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" allowfullscreen="true" onload="var i=this.id,s=window.google_iframe_oncopy,H=s&amp;&amp;s.handlers,h=H&amp;&amp;H[i],w=this.contentWindow,d;try{d=w.document}catch(e){}if(h&amp;&amp;d&amp;&amp;(!d.body||!d.body.firstChild)){if(h.call){setTimeout(h,0)}else if(h.match){try{h=s.upd(h,i)}catch(e){}w.location.replace(h)}}" id="aswift_1" name="aswift_1" style="left:0;position:absolute;top:0;"></iframe></ins></ins></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script></div>
+		</div>
+<div class="side_box widget_views" id="views-4">
+<h3 class="side_title">热门文章</h3>
+<ul>
+<li><a href="http://ifeve.com/google-guava/" title="Google Guava官方教程（中文版）">Google Guava官方教程（中文版）</a> 173,947 人阅读 </li><li><a href="http://ifeve.com/overview/" title="Java NIO系列教程（一） Java NIO 概述">Java NIO系列教程（一） Java NIO 概述</a> 99,608 人阅读 </li><li><a href="http://ifeve.com/java-concurrency-thread-directory/" title="Java并发性和多线程介绍目录">Java并发性和多线程介绍目录</a> 79,136 人阅读 </li><li><a href="http://ifeve.com/java-nio-all/" title="Java NIO 系列教程">Java NIO 系列教程</a> 76,782 人阅读 </li><li><a href="http://ifeve.com/java-nio-vs-io/" title="Java NIO系列教程（十二） Java NIO与IO">Java NIO系列教程（十二） Java NIO与IO</a> 70,124 人阅读 </li><li><a href="http://ifeve.com/java-7-concurrency-cookbook/" title="Java 7 并发编程指南中文版">Java 7 并发编程指南中文版</a> 59,099 人阅读 </li><li><a href="http://ifeve.com/selectors/" title="Java NIO系列教程（六） Selector">Java NIO系列教程（六） Selector</a> 57,665 人阅读 </li><li><a href="http://ifeve.com/channels/" title="Java NIO系列教程（二） Channel">Java NIO系列教程（二） Channel</a> 52,742 人阅读 </li><li><a href="http://ifeve.com/buffers/" title="Java NIO系列教程（三） Buffer">Java NIO系列教程（三） Buffer</a> 51,998 人阅读 </li><li><a href="http://ifeve.com/getting-started-with-stom-index/" title="《Storm入门》中文版">《Storm入门》中文版</a> 45,581 人阅读 </li><li><a href="http://ifeve.com/netty5-user-guide/" title="Netty 5用户指南">Netty 5用户指南</a> 42,229 人阅读 </li><li><a href="http://ifeve.com/disruptor/" title="并发框架Disruptor译文">并发框架Disruptor译文</a> 40,519 人阅读 </li><li><a href="http://ifeve.com/locks-are-bad/" title="剖析Disruptor:为什么会这么快？(一)锁的缺点">剖析Disruptor:为什么会这么快？(一)锁的缺点</a> 39,405 人阅读 </li><li><a href="http://ifeve.com/socket-channel/" title="Java NIO系列教程（八） SocketChannel">Java NIO系列教程（八） SocketChannel</a> 35,958 人阅读 </li><li><a href="http://ifeve.com/perfbook/" title="《深入理解并行编程》中文版">《深入理解并行编程》中文版</a> 35,272 人阅读 </li><li><a href="http://ifeve.com/getting-started-with-storm-1/" title="Storm入门之第一章">Storm入门之第一章</a> 34,565 人阅读 </li><li><a href="http://ifeve.com/file-channel/" title="Java NIO系列教程（七） FileChannel">Java NIO系列教程（七） FileChannel</a> 33,101 人阅读 </li><li><a href="http://ifeve.com/netty1/" title="Netty源码解读（一）概述">Netty源码解读（一）概述</a> 29,926 人阅读 </li><li><a href="http://ifeve.com/google-guava-using-and-avoiding-null/" title="[Google Guava] 1.1-使用和避免null">[Google Guava] 1.1-使用和避免null</a> 29,819 人阅读 </li><li><a href="http://ifeve.com/java-concurrency-constructs/" title="Java并发结构">Java并发结构</a> 29,601 人阅读 </li></ul>
+</div>
+<div class="side_box widget_text" id="text-7">
+			<div class="textwidget"><script async="" src="./聊聊并发（三）Java线程池的分析和使用_files/adsbygoogle.js"></script>
+<ins class="adsbygoogle" style="display:inline-block;width:336px;height:280px" data-ad-client="ca-pub-9394337417063147" data-ad-slot="4721371513" data-adsbygoogle-status="done"><ins id="aswift_2_expand" style="display:inline-table;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><ins id="aswift_2_anchor" style="display:block;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><iframe width="336" height="280" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" allowfullscreen="true" onload="var i=this.id,s=window.google_iframe_oncopy,H=s&amp;&amp;s.handlers,h=H&amp;&amp;H[i],w=this.contentWindow,d;try{d=w.document}catch(e){}if(h&amp;&amp;d&amp;&amp;(!d.body||!d.body.firstChild)){if(h.call){setTimeout(h,0)}else if(h.match){try{h=s.upd(h,i)}catch(e){}w.location.replace(h)}}" id="aswift_2" name="aswift_2" style="left:0;position:absolute;top:0;"></iframe></ins></ins></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+</div>
+		</div>
+<div class="side_box widget_recent_comments" id="recent-comments-2">
+<h3 class="side_title">近期评论</h3>
+<ul id="recentcomments"><li class="recentcomments"><span class="comment-author-link">yangcheng33</span>发表在《<a href="http://ifeve.com/book/comment-page-1/#comment-26402">《Java并发编程的艺术》勘误和支持</a>》</li><li class="recentcomments"><span class="comment-author-link">yangcheng33</span>发表在《<a href="http://ifeve.com/book/comment-page-1/#comment-26401">《Java并发编程的艺术》勘误和支持</a>》</li><li class="recentcomments"><span class="comment-author-link">平僧</span>发表在《<a href="http://ifeve.com/java-io-network/comment-page-1/#comment-26400">Java IO: 网络</a>》</li><li class="recentcomments"><span class="comment-author-link">ashitaka</span>发表在《<a href="http://ifeve.com/introduce-abstractqueuedsynchronizer/comment-page-1/#comment-26399">AbstractQueuedSynchronizer的介绍和原理分析</a>》</li><li class="recentcomments"><span class="comment-author-link">qooge</span>发表在《<a href="http://ifeve.com/lru-cache/comment-page-1/#comment-26398">使用Redis作为一个LRU缓存</a>》</li><li class="recentcomments"><span class="comment-author-link">sososolo</span>发表在《<a href="http://ifeve.com/lru-cache/comment-page-1/#comment-26397">使用Redis作为一个LRU缓存</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://weibo.com/kirals" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">方 腾飞</a></span>发表在《<a href="http://ifeve.com/adopt-openjdk-translate-plan/comment-page-1/#comment-26396">Adopt OpenJDK 翻译计划</a>》</li><li class="recentcomments"><span class="comment-author-link">王山山</span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26395">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link">q1505740617</span>发表在《<a href="http://ifeve.com/adopt-openjdk-translate-plan/comment-page-1/#comment-26394">Adopt OpenJDK 翻译计划</a>》</li><li class="recentcomments"><span class="comment-author-link">JackWang</span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26393">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link">tomasxxoo</span>发表在《<a href="http://ifeve.com/apache-storm/comment-page-1/#comment-26392">Apache Storm 官方文档中文版</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://weibo.com/kirals" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">方 腾飞</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26391">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://weibo.com/kirals" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">方 腾飞</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26390">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link">JackWang</span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26389">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://weibo.com/kirals" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">方 腾飞</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26388">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link">JackWang</span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26387">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link">JackWang</span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26386">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://www.jamespan.me/blog/" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://www.jamespan.me/blog/&#39;); return false;">JamesPan</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26385">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://www.jamespan.me/blog/" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://www.jamespan.me/blog/&#39;); return false;">JamesPan</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26384">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://www.jamespan.me/blog/" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://www.jamespan.me/blog/&#39;); return false;">JamesPan</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26383">《Groovy官方指南》翻译邀请</a>》</li></ul></div>
+<div class="side_box widget_tag_cloud" id="tag_cloud-4">
+<h3 class="side_title">标签</h3>
+<div class="tagcloud"><a href="http://ifeve.com/tag/actor/" class="tag-link-226" title="17个话题" style="font-size: 13.572815533981pt;">actor</a>
+<a href="http://ifeve.com/tag/basic/" class="tag-link-213" title="14个话题" style="font-size: 12.485436893204pt;">Basic</a>
+<a href="http://ifeve.com/tag/book/" class="tag-link-243" title="7个话题" style="font-size: 8.6796116504854pt;">book</a>
+<a href="http://ifeve.com/tag/cacheline/" class="tag-link-77" title="6个话题" style="font-size: 8pt;">cacheline</a>
+<a href="http://ifeve.com/tag/classes/" class="tag-link-251" title="8个话题" style="font-size: 9.3592233009709pt;">classes</a>
+<a href="http://ifeve.com/tag/collections/" class="tag-link-260" title="11个话题" style="font-size: 11.126213592233pt;">collections</a>
+<a href="http://ifeve.com/tag/concurrency/" class="tag-link-111" title="66个话题" style="font-size: 21.320388349515pt;">concurrency</a>
+<a href="http://ifeve.com/tag/concurrent/" class="tag-link-214" title="11个话题" style="font-size: 11.126213592233pt;">Concurrent</a>
+<a href="http://ifeve.com/tag/concurrent-data-structure/" class="tag-link-322" title="13个话题" style="font-size: 12.077669902913pt;">concurrent data structure</a>
+<a href="http://ifeve.com/tag/concurrenthashmap/" class="tag-link-61" title="6个话题" style="font-size: 8pt;">ConcurrentHashMap</a>
+<a href="http://ifeve.com/tag/customizing/" class="tag-link-250" title="8个话题" style="font-size: 9.3592233009709pt;">Customizing</a>
+<a href="http://ifeve.com/tag/date/" class="tag-link-505" title="7个话题" style="font-size: 8.6796116504854pt;">date</a>
+<a href="http://ifeve.com/tag/executor/" class="tag-link-177" title="20个话题" style="font-size: 14.388349514563pt;">Executor</a>
+<a href="http://ifeve.com/tag/executor-framework/" class="tag-link-231" title="17个话题" style="font-size: 13.572815533981pt;">Executor framework</a>
+<a href="http://ifeve.com/tag/false-sharing/" class="tag-link-119" title="7个话题" style="font-size: 8.6796116504854pt;">False Sharing</a>
+<a href="http://ifeve.com/tag/faq/" class="tag-link-39" title="13个话题" style="font-size: 12.077669902913pt;">faq</a>
+<a href="http://ifeve.com/tag/fork/" class="tag-link-232" title="11个话题" style="font-size: 11.126213592233pt;">fork</a>
+<a href="http://ifeve.com/tag/forkjoin/" class="tag-link-224" title="9个话题" style="font-size: 10.038834951456pt;">Fork/Join</a>
+<a href="http://ifeve.com/tag/fork-join/" class="tag-link-53" title="8个话题" style="font-size: 9.3592233009709pt;">fork join</a>
+<a href="http://ifeve.com/tag/framework/" class="tag-link-73" title="22个话题" style="font-size: 14.932038834951pt;">Framework</a>
+<a href="http://ifeve.com/tag/functional-programming/" class="tag-link-460" title="9个话题" style="font-size: 10.038834951456pt;">Functional Programming</a>
+<a href="http://ifeve.com/tag/guava/" class="tag-link-309" title="14个话题" style="font-size: 12.485436893204pt;">Guava</a>
+<a href="http://ifeve.com/tag/io/" class="tag-link-129" title="26个话题" style="font-size: 15.883495145631pt;">IO</a>
+<a href="http://ifeve.com/tag/java/" class="tag-link-69" title="74个话题" style="font-size: 22pt;">JAVA</a>
+<a href="http://ifeve.com/tag/java8/" class="tag-link-342" title="10个话题" style="font-size: 10.582524271845pt;">java8</a>
+<a href="http://ifeve.com/tag/jmm/" class="tag-link-31" title="31个话题" style="font-size: 16.970873786408pt;">jmm</a>
+<a href="http://ifeve.com/tag/join/" class="tag-link-233" title="11个话题" style="font-size: 11.126213592233pt;">join</a>
+<a href="http://ifeve.com/tag/jvm/" class="tag-link-127" title="16个话题" style="font-size: 13.165048543689pt;">JVM</a>
+<a href="http://ifeve.com/tag/lock/" class="tag-link-17" title="23个话题" style="font-size: 15.203883495146pt;">lock</a>
+<a href="http://ifeve.com/tag/memory-barriers/" class="tag-link-75" title="10个话题" style="font-size: 10.582524271845pt;">Memory Barriers</a>
+<a href="http://ifeve.com/tag/netty/" class="tag-link-280" title="16个话题" style="font-size: 13.165048543689pt;">Netty</a>
+<a href="http://ifeve.com/tag/nio/" class="tag-link-131" title="14个话题" style="font-size: 12.485436893204pt;">NIO</a>
+<a href="http://ifeve.com/tag/oauth-2-0/" class="tag-link-380" title="8个话题" style="font-size: 9.3592233009709pt;">OAuth 2.0</a>
+<a href="http://ifeve.com/tag/pattern-matching/" class="tag-link-167" title="8个话题" style="font-size: 9.3592233009709pt;">pattern-matching</a>
+<a href="http://ifeve.com/tag/ringbuffer/" class="tag-link-91" title="7个话题" style="font-size: 8.6796116504854pt;">RingBuffer</a>
+<a href="http://ifeve.com/tag/scala/" class="tag-link-166" title="22个话题" style="font-size: 14.932038834951pt;">Scala</a>
+<a href="http://ifeve.com/tag/stm/" class="tag-link-199" title="12个话题" style="font-size: 11.533980582524pt;">stm</a>
+<a href="http://ifeve.com/tag/storm/" class="tag-link-351" title="39个话题" style="font-size: 18.194174757282pt;">Storm</a>
+<a href="http://ifeve.com/tag/synchronization/" class="tag-link-216" title="15个话题" style="font-size: 12.757281553398pt;">synchronization</a>
+<a href="http://ifeve.com/tag/synchronized/" class="tag-link-15" title="10个话题" style="font-size: 10.582524271845pt;">Synchronized</a>
+<a href="http://ifeve.com/tag/thread/" class="tag-link-11" title="41个话题" style="font-size: 18.466019417476pt;">thread</a>
+<a href="http://ifeve.com/tag/time/" class="tag-link-506" title="7个话题" style="font-size: 8.6796116504854pt;">time</a>
+<a href="http://ifeve.com/tag/tomcat/" class="tag-link-347" title="8个话题" style="font-size: 9.3592233009709pt;">tomcat</a>
+<a href="http://ifeve.com/tag/volatile/" class="tag-link-25" title="11个话题" style="font-size: 11.126213592233pt;">volatile</a>
+<a href="http://ifeve.com/tag/%e5%a4%9a%e7%ba%bf%e7%a8%8b/" class="tag-link-197" title="8个话题" style="font-size: 9.3592233009709pt;">多线程</a></div>
+</div>
+<div class="side_box widget_text" id="text-9">
+			<div class="textwidget"><script async="" src="./聊聊并发（三）Java线程池的分析和使用_files/adsbygoogle.js"></script>
+<ins class="adsbygoogle" style="display:inline-block;width:336px;height:280px" data-ad-client="ca-pub-9394337417063147" data-ad-slot="6198104715" data-adsbygoogle-status="done"><ins id="aswift_3_expand" style="display:inline-table;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><ins id="aswift_3_anchor" style="display:block;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><iframe width="336" height="280" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" allowfullscreen="true" onload="var i=this.id,s=window.google_iframe_oncopy,H=s&amp;&amp;s.handlers,h=H&amp;&amp;H[i],w=this.contentWindow,d;try{d=w.document}catch(e){}if(h&amp;&amp;d&amp;&amp;(!d.body||!d.body.firstChild)){if(h.call){setTimeout(h,0)}else if(h.match){try{h=s.upd(h,i)}catch(e){}w.location.replace(h)}}" id="aswift_3" name="aswift_3" style="left:0;position:absolute;top:0;"></iframe></ins></ins></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+
+</div>
+		</div>
+</div>
+<div id="side_middle" class="clearfix">
+ <div id="side_left">
+  <div class="side_box_short widget_archive" id="archives-2">
+<h3 class="side_title">文章归档</h3>
+		<ul>
+	<li><a href="http://ifeve.com/2015/10/">2015年十月</a>&nbsp;(8)</li>
+	<li><a href="http://ifeve.com/2015/09/">2015年九月</a>&nbsp;(29)</li>
+	<li><a href="http://ifeve.com/2015/08/">2015年八月</a>&nbsp;(44)</li>
+	<li><a href="http://ifeve.com/2015/07/">2015年七月</a>&nbsp;(20)</li>
+	<li><a href="http://ifeve.com/2015/06/">2015年六月</a>&nbsp;(21)</li>
+	<li><a href="http://ifeve.com/2015/05/">2015年五月</a>&nbsp;(15)</li>
+	<li><a href="http://ifeve.com/2015/04/">2015年四月</a>&nbsp;(27)</li>
+	<li><a href="http://ifeve.com/2015/03/">2015年三月</a>&nbsp;(13)</li>
+	<li><a href="http://ifeve.com/2015/02/">2015年二月</a>&nbsp;(11)</li>
+	<li><a href="http://ifeve.com/2015/01/">2015年一月</a>&nbsp;(13)</li>
+	<li><a href="http://ifeve.com/2014/12/">2014年十二月</a>&nbsp;(26)</li>
+	<li><a href="http://ifeve.com/2014/11/">2014年十一月</a>&nbsp;(61)</li>
+	<li><a href="http://ifeve.com/2014/10/">2014年十月</a>&nbsp;(33)</li>
+	<li><a href="http://ifeve.com/2014/09/">2014年九月</a>&nbsp;(47)</li>
+	<li><a href="http://ifeve.com/2014/08/">2014年八月</a>&nbsp;(27)</li>
+	<li><a href="http://ifeve.com/2014/07/">2014年七月</a>&nbsp;(13)</li>
+	<li><a href="http://ifeve.com/2014/06/">2014年六月</a>&nbsp;(32)</li>
+	<li><a href="http://ifeve.com/2014/05/">2014年五月</a>&nbsp;(45)</li>
+	<li><a href="http://ifeve.com/2014/04/">2014年四月</a>&nbsp;(41)</li>
+	<li><a href="http://ifeve.com/2014/03/">2014年三月</a>&nbsp;(34)</li>
+	<li><a href="http://ifeve.com/2014/02/">2014年二月</a>&nbsp;(38)</li>
+	<li><a href="http://ifeve.com/2014/01/">2014年一月</a>&nbsp;(19)</li>
+	<li><a href="http://ifeve.com/2013/12/">2013年十二月</a>&nbsp;(10)</li>
+	<li><a href="http://ifeve.com/2013/11/">2013年十一月</a>&nbsp;(5)</li>
+	<li><a href="http://ifeve.com/2013/10/">2013年十月</a>&nbsp;(20)</li>
+	<li><a href="http://ifeve.com/2013/09/">2013年九月</a>&nbsp;(38)</li>
+	<li><a href="http://ifeve.com/2013/08/">2013年八月</a>&nbsp;(48)</li>
+	<li><a href="http://ifeve.com/2013/07/">2013年七月</a>&nbsp;(26)</li>
+	<li><a href="http://ifeve.com/2013/06/">2013年六月</a>&nbsp;(16)</li>
+	<li><a href="http://ifeve.com/2013/05/">2013年五月</a>&nbsp;(9)</li>
+	<li><a href="http://ifeve.com/2013/04/">2013年四月</a>&nbsp;(17)</li>
+	<li><a href="http://ifeve.com/2013/03/">2013年三月</a>&nbsp;(41)</li>
+	<li><a href="http://ifeve.com/2013/02/">2013年二月</a>&nbsp;(25)</li>
+	<li><a href="http://ifeve.com/2013/01/">2013年一月</a>&nbsp;(57)</li>
+	<li><a href="http://ifeve.com/2012/12/">2012年十二月</a>&nbsp;(9)</li>
+	<li><a href="http://ifeve.com/2012/10/">2012年十月</a>&nbsp;(1)</li>
+	<li><a href="http://ifeve.com/2012/08/">2012年八月</a>&nbsp;(1)</li>
+		</ul>
+</div>
+ </div>
+ <div id="side_right">
+  <div class="side_box_short widget_links" id="linkcat-2">
+<h3 class="side_title">友情链接</h3>
+
+	<ul class="xoxo blogroll">
+<li><a href="http://coolshell.cn/" rel="co-worker" onclick="javascript:window.open(&#39;http://coolshell.cn/&#39;); return false;">coolshell</a></li>
+<li><a href="http://blog.91gaoqing.com/" onclick="javascript:window.open(&#39;http://blog.91gaoqing.com/&#39;); return false;">Programer. 大猫</a></li>
+<li><a href="http://hugozhu.myalert.info/" rel="co-worker" onclick="javascript:window.open(&#39;http://hugozhu.myalert.info/&#39;); return false;">一粟的博客</a></li>
+<li><a href="http://bj.liepin.com/" onclick="javascript:window.open(&#39;http://bj.liepin.com/&#39;); return false;">北京猎聘网</a></li>
+<li><a href="http://blog.csdn.net/cutesource/" rel="acquaintance co-worker" onclick="javascript:window.open(&#39;http://blog.csdn.net/cutesource/&#39;); return false;">志俊的博客</a></li>
+<li><a href="http://www.zuidaima.com/" onclick="javascript:window.open(&#39;http://www.zuidaima.com/&#39;); return false;">最代码</a></li>
+<li><a href="http://diandianzhe.com/" onclick="javascript:window.open(&#39;http://diandianzhe.com/&#39;); return false;">点点折</a></li>
+<li><a href="http://www.liuinsect.com/" onclick="javascript:window.open(&#39;http://www.liuinsect.com/&#39;); return false;">码梦为生</a></li>
+<li><a href="http://namiao.org/" rel="acquaintance co-worker" onclick="javascript:window.open(&#39;http://namiao.org/&#39;); return false;">纳秒</a></li>
+<li><a href="http://www.656463.com/" onclick="javascript:window.open(&#39;http://www.656463.com/&#39;); return false;">领悟书生</a></li>
+
+	</ul>
+</div>
+
+<div class="side_box_short widget_categories" id="categories-2">
+<h3 class="side_title">分类目录</h3>
+		<ul>
+	<li class="cat-item cat-item-387"><a href="http://ifeve.com/category/framework/akka/">akka</a> (18)
+</li>
+	<li class="cat-item cat-item-415"><a href="http://ifeve.com/category/android/">Android</a> (3)
+</li>
+	<li class="cat-item cat-item-289"><a href="http://ifeve.com/category/c/">C++</a> (11)
+</li>
+	<li class="cat-item cat-item-366"><a href="http://ifeve.com/category/cpu-2/">CPU</a> (2)
+</li>
+	<li class="cat-item cat-item-73"><a href="http://ifeve.com/category/framework/">Framework</a> (45)
+</li>
+	<li class="cat-item cat-item-458"><a href="http://ifeve.com/category/go/">GO</a> (6)
+</li>
+	<li class="cat-item cat-item-617"><a href="http://ifeve.com/category/groovy/">groovy</a> (6)
+</li>
+	<li class="cat-item cat-item-310"><a href="http://ifeve.com/category/guava-2/">guava</a> (22)
+</li>
+	<li class="cat-item cat-item-69"><a href="http://ifeve.com/category/java/">JAVA</a> (372)
+</li>
+	<li class="cat-item cat-item-127"><a href="http://ifeve.com/category/jvm/">JVM</a> (34)
+</li>
+	<li class="cat-item cat-item-300"><a href="http://ifeve.com/category/linux/">linux</a> (7)
+</li>
+	<li class="cat-item cat-item-280"><a href="http://ifeve.com/category/netty/">Netty</a> (22)
+</li>
+	<li class="cat-item cat-item-166"><a href="http://ifeve.com/category/scala/">Scala</a> (9)
+</li>
+	<li class="cat-item cat-item-388"><a href="http://ifeve.com/category/storm/">storm</a> (42)
+</li>
+	<li class="cat-item cat-item-620"><a href="http://ifeve.com/category/thinking/">thinking</a> (1)
+</li>
+	<li class="cat-item cat-item-485"><a href="http://ifeve.com/category/velocity/">Velocity</a> (6)
+</li>
+	<li class="cat-item cat-item-279"><a href="http://ifeve.com/category/web/">Web</a> (13)
+</li>
+	<li class="cat-item cat-item-148"><a href="http://ifeve.com/category/notice/">公告</a> (5)
+</li>
+	<li class="cat-item cat-item-378"><a href="http://ifeve.com/category/bigdata/">大数据</a> (22)
+</li>
+	<li class="cat-item cat-item-138"><a href="http://ifeve.com/category/%e5%a5%bd%e6%96%87%e6%8e%a8%e8%8d%90/">好文推荐</a> (26)
+</li>
+	<li class="cat-item cat-item-244"><a href="http://ifeve.com/category/%e5%b9%b6%e5%8f%91%e4%b9%a6%e7%b1%8d/">并发书籍</a> (95)
+</li>
+	<li class="cat-item cat-item-29"><a href="http://ifeve.com/category/concurrency-translation/" title="发布国外并发编程相关文献译文。">并发译文</a> (359)
+</li>
+	<li class="cat-item cat-item-7"><a href="http://ifeve.com/category/ask/" title="可以在这里发表并发编程的问题。如何发表？用QQ登陆，然后点击“新建文章”，管理员审核后就可以发表。">技术问答</a> (11)
+</li>
+	<li class="cat-item cat-item-147"><a href="http://ifeve.com/category/%e6%95%8f%e6%8d%b7%e7%ae%a1%e7%90%86/">敏捷管理</a> (5)
+</li>
+	<li class="cat-item cat-item-1"><a href="http://ifeve.com/category/talk-concurrent/">本站原创</a> (72)
+</li>
+	<li class="cat-item cat-item-367"><a href="http://ifeve.com/category/%e6%9e%b6%e6%9e%84/">架构</a> (19)
+</li>
+	<li class="cat-item cat-item-305"><a href="http://ifeve.com/category/%e6%b4%bb%e5%8a%a8/">活动</a> (7)
+</li>
+	<li class="cat-item cat-item-414"><a href="http://ifeve.com/category/%e7%bd%91%e7%bb%9c/">网络</a> (3)
+</li>
+		</ul>
+</div>
+ </div>
+</div>
+<div id="side_bottom">
+ <div class="side_box widget_text" id="text-15">
+			<div class="textwidget"><script async="" src="./聊聊并发（三）Java线程池的分析和使用_files/adsbygoogle.js"></script>
+<!-- 摩天大楼 -->
+<ins class="adsbygoogle" style="display:inline-block;width:300px;height:600px" data-ad-client="ca-pub-9394337417063147" data-ad-slot="6358703113" data-adsbygoogle-status="done"><ins id="aswift_4_expand" style="display:inline-table;border:none;height:600px;margin:0;padding:0;position:relative;visibility:visible;width:300px;background-color:transparent"><ins id="aswift_4_anchor" style="display:block;border:none;height:600px;margin:0;padding:0;position:relative;visibility:visible;width:300px;background-color:transparent"><iframe width="300" height="600" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" allowfullscreen="true" onload="var i=this.id,s=window.google_iframe_oncopy,H=s&amp;&amp;s.handlers,h=H&amp;&amp;H[i],w=this.contentWindow,d;try{d=w.document}catch(e){}if(h&amp;&amp;d&amp;&amp;(!d.body||!d.body.firstChild)){if(h.call){setTimeout(h,0)}else if(h.match){try{h=s.upd(h,i)}catch(e){}w.location.replace(h)}}" id="aswift_4" name="aswift_4" style="left:0;position:absolute;top:0;"></iframe></ins></ins></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+<!-- CNZZ -->
+<script src="./聊聊并发（三）Java线程池的分析和使用_files/stat.php" language="JavaScript"></script><script src="./聊聊并发（三）Java线程池的分析和使用_files/core.php" charset="utf-8" type="text/javascript"></script><a href="http://www.cnzz.com/stat/website.php?web_id=5003572" title="站长统计" onclick="javascript:window.open(&#39;http://www.cnzz.com/stat/website.php?web_id=5003572&#39;); return false;"><img border="0" hspace="0" vspace="0" src="./聊聊并发（三）Java线程池的分析和使用_files/pic.gif"></a>
+
+感谢<a href="https://www.upyun.com/index.html" onclick="javascript:window.open(&#39;https://www.upyun.com/index.html&#39;); return false;">又拍云</a>为本站提供服务器和图片服务。</div>
+		</div>
+</div>
+
+  </div>
+  
+  <div id="footer">
+
+<ul id="copyright">
+    <li>版权所有 ©&nbsp; <a href="http://ifeve.com/">并发编程网 – ifeve.com</a></li>
+    <li>ICP号: <a href="http://www.miibeian.gov.cn/" onclick="javascript:window.open(&#39;http://www.miibeian.gov.cn/&#39;); return false;">浙ICP备12046809号</a></li>
+<li class="last"><script type="text/javascript" src="./聊聊并发（三）Java线程池的分析和使用_files/tongji.js"></script><img src="./聊聊并发（三）Java线程池的分析和使用_files/tongji.do" border="0" width="1" height="1"><a href="http://tongji.linezing.com/report.html?unit_id=3067707" onclick="javascript:window.open(&#39;http://tongji.linezing.com/report.html?unit_id=3067707&#39;); return false;">量子统计</a><noscript>&lt;a href="http://www.linezing.com"&gt;&lt;img src="http://img.tongji.linezing.com/3067707/tongji.gif"/&gt;&lt;/a&gt;</noscript></li>
+   </ul>
+ </div>
+ </div><!-- END #main_content -->
+
+  <p id="return_top" style="display: block;"><a href="http://ifeve.com/java-threadpool/#header">return top</a></p>
+ 
+<script type="text/javascript" src="./聊聊并发（三）Java线程池的分析和使用_files/shCore.js"></script>
+<script type="text/javascript" src="./聊聊并发（三）Java线程池的分析和使用_files/shBrushJava.js"></script>
+<script type="text/javascript" src="./聊聊并发（三）Java线程池的分析和使用_files/shBrushPlain.js"></script>
+<script type="text/javascript">
+	(function(){
+		var corecss = document.createElement('link');
+		var themecss = document.createElement('link');
+		var corecssurl = "http://ifeve.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/styles/shCore.css?ver=2.1.364";
+		if ( corecss.setAttribute ) {
+				corecss.setAttribute( "rel", "stylesheet" );
+				corecss.setAttribute( "type", "text/css" );
+				corecss.setAttribute( "href", corecssurl );
+		} else {
+				corecss.rel = "stylesheet";
+				corecss.href = corecssurl;
+		}
+		document.getElementsByTagName("head")[0].insertBefore( corecss, document.getElementById("syntaxhighlighteranchor") );
+		var themecssurl = "http://ifeve.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/styles/shThemeEclipse.css?ver=2.1.364";
+		if ( themecss.setAttribute ) {
+				themecss.setAttribute( "rel", "stylesheet" );
+				themecss.setAttribute( "type", "text/css" );
+				themecss.setAttribute( "href", themecssurl );
+		} else {
+				themecss.rel = "stylesheet";
+				themecss.href = themecssurl;
+		}
+		//document.getElementById("syntaxhighlighteranchor").appendChild(themecss);
+		document.getElementsByTagName("head")[0].insertBefore( themecss, document.getElementById("syntaxhighlighteranchor") );
+	})();
+	SyntaxHighlighter.config.clipboardSwf = 'http://ifeve.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/scripts/clipboard.swf';
+	SyntaxHighlighter.config.strings.expandSource = 'show source';
+	SyntaxHighlighter.config.strings.viewSource = '查看源代码';
+	SyntaxHighlighter.config.strings.copyToClipboard = '复制到剪贴板';
+	SyntaxHighlighter.config.strings.copyToClipboardConfirmation = '代码现在在你的剪贴板';
+	SyntaxHighlighter.config.strings.print = '打印';
+	SyntaxHighlighter.config.strings.help = '帮助';
+	SyntaxHighlighter.config.strings.alert = 'SyntaxHighlighter\n\n';
+	SyntaxHighlighter.config.strings.noBrush = '无法找到Brush：';
+	SyntaxHighlighter.config.strings.brushNotHtmlScript = 'Brush不能设置 html-script选项';
+	SyntaxHighlighter.defaults['pad-line-numbers'] = true;
+	SyntaxHighlighter.all();
+</script>
+<link rel="stylesheet" id="yarppRelatedCss-css" href="./聊聊并发（三）Java线程池的分析和使用_files/related.css" type="text/css" media="all">
+<script type="text/javascript" src="./聊聊并发（三）Java线程池的分析和使用_files/comment-reply.min.js"></script>
+<script type="text/javascript">
+/* <![CDATA[ */
+var ratingsL10n = {"plugin_url":"http:\/\/ifeve.com\/wp-content\/plugins\/wp-postratings","ajax_url":"http:\/\/ifeve.com\/wp-admin\/admin-ajax.php","text_wait":"Please rate only 1 post at a time.","image":"stars_crystal","image_ext":"gif","max":"5","show_loading":"1","show_fading":"1","custom":"0"};
+var ratings_mouseover_image=new Image();ratings_mouseover_image.src=ratingsL10n.plugin_url+"/images/"+ratingsL10n.image+"/rating_over."+ratingsL10n.image_ext;;
+/* ]]> */
+</script>
+<script type="text/javascript" src="./聊聊并发（三）Java线程池的分析和使用_files/postratings-js.js"></script>
+<script type="text/javascript">
+/* <![CDATA[ */
+var viewsCacheL10n = {"admin_ajax_url":"http:\/\/ifeve.com\/wp-admin\/admin-ajax.php","post_id":"151"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="./聊聊并发（三）Java线程池的分析和使用_files/postviews-cache.js"></script>
+
+
+
+<script src="./聊聊并发（三）Java线程池的分析和使用_files/jquery.min.js"></script>
+
+<script src="./聊聊并发（三）Java线程池的分析和使用_files/jquery.bpopup-0.8.0.min.js"></script>
+
+
+<!--
+<script type="text/javascript">
+
+;(function($) {
+
+    $(function() {
+
+        var url=document.referrer;
+
+        if ( url && url.search("http://")>-1) {
+
+            var refurl =  url.match(/:\/\/(.[^/]+)/)[1];
+
+            if(refurl.indexOf("baidu.com")>-1){
+
+                $('#nobaidu_dlg').bPopup();
+
+            }
+
+        }
+
+    });
+
+
+
+})(jQuery);
+
+</script>
+
+
+
+
+<div id="nobaidu_dlg" style="background-color:#fff; border-radius:15px;color:#000;display:none;padding:20px;min-width:450px;min-height:180px;">
+
+    <span class="bClose" style="cursor:pointer; position:absolute; right:10px;top:5px;">x<span/>
+
+    <img src="http://coolshell.cn//wp-content/themes/inove/img/nobaidu.jpg" align="left">
+
+     <p style="margin-left:200px;margin-top: 20px; line-height: 30px;">
+
+     检测到你还在使用百度这个搜索引擎，<br/>
+
+     做为一个程序员，这是一种自暴自弃！<br/>
+
+     <br/>
+
+     </p>
+
+     <p align="center" style="margin-top:20px;">
+
+     <b><a href="http://coolshell.cn/articles/7186.html">作环保的程序员，从不用百度开始！</a></b>
+
+     </p>
+
+</div>
+-->
+
+<!-- Dynamic page generated in 2.478 seconds. -->
+<!-- Cached page generated by WP-Super-Cache on 2015-10-08 08:41:26 -->
+</body></html>

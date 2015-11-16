@@ -1,0 +1,1259 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<!-- saved from url=(0035)http://ifeve.com/java-synchronized/ -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head profile="http://gmpg.org/xfn/11"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><script async="" type="text/javascript" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/ca-pub-9394337417063147.js"></script><script src="./聊聊并发（二）Java SE1.6中的Synchronized_files/shares.php" charset="utf-8"></script><script src="./聊聊并发（二）Java SE1.6中的Synchronized_files/id.php" charset="utf-8"></script>
+
+
+<title>聊聊并发（二）Java SE1.6中的Synchronized | 并发编程网 - ifeve.com</title>
+<meta name="description" content="让天下没有难学的技术">
+
+<link rel="alternate" type="application/rss+xml" title="并发编程网 – ifeve.com RSS Feed" href="http://ifeve.com/feed/">
+<link rel="alternate" type="application/atom+xml" title="并发编程网 – ifeve.com Atom Feed" href="http://ifeve.com/feed/atom/"> 
+<link rel="pingback" href="http://ifeve.com/xmlrpc.php">
+
+<link rel="stylesheet" href="./聊聊并发（二）Java SE1.6中的Synchronized_files/style.css" type="text/css">
+<link rel="stylesheet" href="./聊聊并发（二）Java SE1.6中的Synchronized_files/comment-style.css" type="text/css">
+
+ 
+
+<!-- All in One SEO Pack 2.2.7.1 by Michael Torbert of Semper Fi Web Design[258,322] -->
+<meta name="description" itemprop="description" content="本文属作者原创，原文发表于InfoQ：http://www.infoq.com/cn/articles/java-se-16-synchronized 1 引言 在多线程并发编程中Synchronized一直是元老级角色，很多人都会称呼它为重量级锁，但是随着Java">
+
+<meta name="keywords" itemprop="keywords" content="lock,synchronized">
+
+<link rel="canonical" href="./聊聊并发（二）Java SE1.6中的Synchronized_files/聊聊并发（二）Java SE1.6中的Synchronized.html">
+<!-- /all in one seo pack -->
+<link rel="alternate" type="application/rss+xml" title="并发编程网 - ifeve.com » 聊聊并发（二）Java SE1.6中的Synchronized评论Feed" href="http://ifeve.com/java-synchronized/feed/">
+		<script type="text/javascript">
+			window._wpemojiSettings = {"baseUrl":"http:\/\/s.w.org\/images\/core\/emoji\/72x72\/","ext":".png","source":{"concatemoji":"http:\/\/ifeve.com\/wp-includes\/js\/wp-emoji-release.min.js?ver=4.2.5"}};
+			!function(a,b,c){function d(a){var c=b.createElement("canvas"),d=c.getContext&&c.getContext("2d");return d&&d.fillText?(d.textBaseline="top",d.font="600 32px Arial","flag"===a?(d.fillText(String.fromCharCode(55356,56812,55356,56807),0,0),c.toDataURL().length>3e3):(d.fillText(String.fromCharCode(55357,56835),0,0),0!==d.getImageData(16,16,1,1).data[0])):!1}function e(a){var c=b.createElement("script");c.src=a,c.type="text/javascript",b.getElementsByTagName("head")[0].appendChild(c)}var f,g;c.supports={simple:d("simple"),flag:d("flag")},c.DOMReady=!1,c.readyCallback=function(){c.DOMReady=!0},c.supports.simple&&c.supports.flag||(g=function(){c.readyCallback()},b.addEventListener?(b.addEventListener("DOMContentLoaded",g,!1),a.addEventListener("load",g,!1)):(a.attachEvent("onload",g),b.attachEvent("onreadystatechange",function(){"complete"===b.readyState&&c.readyCallback()})),f=c.source||{},f.concatemoji?e(f.concatemoji):f.wpemoji&&f.twemoji&&(e(f.twemoji),e(f.wpemoji)))}(window,document,window._wpemojiSettings);
+		</script><script src="./聊聊并发（二）Java SE1.6中的Synchronized_files/wp-emoji-release.min.js" type="text/javascript"></script>
+		<style type="text/css">
+img.wp-smiley,
+img.emoji {
+	display: inline !important;
+	border: none !important;
+	box-shadow: none !important;
+	height: 1em !important;
+	width: 1em !important;
+	margin: 0 .07em !important;
+	vertical-align: -0.1em !important;
+	background: none !important;
+	padding: 0 !important;
+}
+</style>
+<link rel="stylesheet" id="yarppWidgetCss-css" href="./聊聊并发（二）Java SE1.6中的Synchronized_files/widget.css" type="text/css" media="all">
+<link rel="stylesheet" id="dwqa-style-css" href="./聊聊并发（二）Java SE1.6中的Synchronized_files/style(1).css" type="text/css" media="all">
+<link rel="stylesheet" id="wp-postratings-css" href="./聊聊并发（二）Java SE1.6中的Synchronized_files/postratings-css.css" type="text/css" media="all">
+<link rel="stylesheet" id="display-authors-widget-styles-css" href="./聊聊并发（二）Java SE1.6中的Synchronized_files/display-authors-widget.css" type="text/css" media="all">
+<script type="text/javascript" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/jquery.js"></script>
+<script type="text/javascript" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/jquery-migrate.min.js"></script>
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://ifeve.com/xmlrpc.php?rsd">
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://ifeve.com/wp-includes/wlwmanifest.xml"> 
+<link rel="prev" title="聊聊并发（一）深入分析Volatile的实现原理" href="http://ifeve.com/volatile/">
+<link rel="next" title="并发和并行有什么区别？" href="http://ifeve.com/parallel_and_con/">
+<meta name="generator" content="WordPress 4.2.5">
+<link rel="shortlink" href="http://ifeve.com/?p=21">
+
+
+<!-- Plugin: Open external links a new window. Plugin by Kristian Risager Larsen, http://kristianrisagerlarsen.dk . Download it at http://wordpress.org/extend/plugins/open-external-links-in-a-new-window/ -->
+<script type="text/javascript">//<![CDATA[
+	function external_links_in_new_windows_loop() {
+		if (!document.links) {
+			document.links = document.getElementsByTagName('a');
+		}
+		var change_link = false;
+		var force = '';
+		var ignore = '';
+
+		for (var t=0; t<document.links.length; t++) {
+			var all_links = document.links[t];
+			change_link = false;
+			
+			if(document.links[t].hasAttribute('onClick') == false) {
+				// forced if the address starts with http (or also https), but does not link to the current domain
+				if(all_links.href.search(/^http/) != -1 && all_links.href.search('ifeve.com') == -1) {
+					// alert('Changeda '+all_links.href);
+					change_link = true;
+				}
+					
+				if(force != '' && all_links.href.search(force) != -1) {
+					// forced
+					// alert('force '+all_links.href);
+					change_link = true;
+				}
+				
+				if(ignore != '' && all_links.href.search(ignore) != -1) {
+					// alert('ignore '+all_links.href);
+					// ignored
+					change_link = false;
+				}
+
+				if(change_link == true) {
+					// alert('Changed '+all_links.href);
+					document.links[t].setAttribute('onClick', 'javascript:window.open(\''+all_links.href+'\'); return false;');
+					document.links[t].removeAttribute('target');
+				}
+			}
+		}
+	}
+	
+	// Load
+	function external_links_in_new_windows_load(func)
+	{	
+		var oldonload = window.onload;
+		if (typeof window.onload != 'function'){
+			window.onload = func;
+		} else {
+			window.onload = function(){
+				oldonload();
+				func();
+			}
+		}
+	}
+
+	external_links_in_new_windows_load(external_links_in_new_windows_loop);
+	//]]></script>
+
+
+<!-- StarBox - the Author Box for Humans 3.0.4, visit: http://wordpress.org/plugins/starbox/ -->
+<!-- /StarBox - the Author Box for Humans -->
+
+<link rel="stylesheet" id="frontend.css-css" href="./聊聊并发（二）Java SE1.6中的Synchronized_files/frontend.css" type="text/css" media="all">
+<script type="text/javascript" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/frontend.js"></script>
+<link rel="stylesheet" id="hidedefault.css-css" href="./聊聊并发（二）Java SE1.6中的Synchronized_files/hidedefault.css" type="text/css" media="all">
+<style type="text/css" media="screen">#wp-admin-bar-user-info .avatar-64 {width:64px}</style>
+	<style type="text/css">.recentcomments a{display:inline !important;padding:0 !important;margin:0 !important;}</style>
+<style type="text/css" id="syntaxhighlighteranchor"></style>
+
+<script type="text/javascript" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/jscript.js"></script>
+<script type="text/javascript" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/comment.js"></script>
+<script type="text/javascript" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/rollover.js"></script>
+
+<!--[if IE 7]>
+<link rel="stylesheet" href="http://ifeve.com/wp-content/themes/flat/ie7.css" type="text/css" />
+<![endif]-->
+<!--[if IE 8]>
+<link rel="stylesheet" href="http://ifeve.com/wp-content/themes/flat/ie8.css" type="text/css" />
+<![endif]-->
+
+
+<style type="text/css">
+a, .post .title a:hover, .post_meta a:hover, #bread_crumb ul li a:hover, #previous_post a:hover, #next_post a:hover, .post a.more-link:hover, #right_col li a:hover, #copyright li a:hover, #archive_headline #keyword,
+   #comments_wrapper a:hover, #comment_header_right .comment_switch_active a, #comment_header_right .comment_switch_active a:hover, #comment_pager .current
+   { color:#00A19E; }
+
+#no_post a.back:hover, #wp-calendar td a:hover, #wp-calendar #prev a:hover, #wp-calendar #next a:hover, .page_navi a:hover, #submit_comment:hover
+ { background-color:#00A19E; }
+
+#guest_info input:focus, #comment_textarea textarea:focus
+ { border:1px solid #00A19E; }
+
+a:hover
+ { color:#BDC900; }
+
+body { font-size:14px; }
+
+#header { background:url(http://ifeve.com/wp-content/uploads/flat/bg.png) left top; }
+.logo_text a { color:#F5F5F5; }
+#site_description {  border-top:1px solid #BBBBBB; color:#D2D9CC; }
+
+
+</style>
+
+</head>
+
+<body style="zoom: 1;"><div id="BAIDU_DUP_fp_wrapper" style="position: absolute; left: -1px; bottom: -1px; z-index: 0; width: 0px; height: 0px; overflow: hidden; visibility: hidden; display: none;"><iframe id="BAIDU_DUP_fp_iframe" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/o.html" style="width: 0px; height: 0px; visibility: hidden; display: none;"></iframe></div><link href="./聊聊并发（二）Java SE1.6中的Synchronized_files/jiathis_counter.css" rel="stylesheet" type="text/css"><link href="./聊聊并发（二）Java SE1.6中的Synchronized_files/jiathis_share.css" rel="stylesheet" type="text/css"><iframe frameborder="0" style="position: absolute; display: none; opacity: 0;"></iframe><div class="jiathis_style" style="position: absolute; z-index: 1000000000; display: none; top: 50%; left: 50%; overflow: auto;"></div><div class="jiathis_style" style="position: absolute; z-index: 1000000000; display: none; overflow: auto;"></div><iframe frameborder="0" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/jiathis_utility.html" style="display: none;"></iframe>
+
+ <div id="header">
+  <div class="header_menu">
+    <ul id="menu-%e4%b8%bb%e8%8f%9c%e5%8d%95" class="menu"><li id="menu-item-16594" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-16594"><a href="http://ifeve.com/">首页</a></li>
+<li id="menu-item-3432" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-3432"><a href="http://ifeve.com/wp-login.php">登录</a></li>
+<li id="menu-item-17079" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-17079"><a href="http://ifeve.com/questions/">面试题</a></li>
+<li id="menu-item-9219" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-has-children menu-item-9219"><a href="http://ifeve.com/category/java/">JAVA</a>
+<ul class="sub-menu">
+	<li id="menu-item-16108" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-16108"><a href="http://ifeve.com/java-io/">Java IO 教程</a></li>
+	<li id="menu-item-5283" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5283"><a href="http://ifeve.com/java-nio-all/">Java NIO 教程</a></li>
+	<li id="menu-item-17514" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-17514"><a href="http://ifeve.com/java-reflection/">JAVA Reflection教程</a></li>
+	<li id="menu-item-16239" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-16239"><a href="http://ifeve.com/java-network">Java 网络教程</a></li>
+	<li id="menu-item-4416" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4416"><a href="http://ifeve.com/java-concurrency-thread-directory/">Java并发和多线程</a></li>
+	<li id="menu-item-2767" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2767"><a href="http://ifeve.com/jmm-cookbook/">Java内存模型指南</a></li>
+	<li id="menu-item-2747" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2747"><a href="http://ifeve.com/jmm-faq/">Java内存模型FAQ</a></li>
+	<li id="menu-item-2765" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2765"><a href="http://ifeve.com/syn-jmm/">同步与Java内存模型</a></li>
+	<li id="menu-item-5789" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5789"><a href="http://ifeve.com/oracle-java-concurrency-tutorial/">Oracle官方并发教程</a></li>
+	<li id="menu-item-15316" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-15316"><a href="http://ifeve.com/jvm-optimize/">JVM性能优化系列</a></li>
+	<li id="menu-item-15313" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-15313"><a href="http://ifeve.com/useful-jvm-flags/">JVM实用参数系列</a></li>
+</ul>
+</li>
+<li id="menu-item-7938" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-7938"><a href="http://ifeve.com/category/c/">C++</a></li>
+<li id="menu-item-9220" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-9220"><a href="http://ifeve.com/category/framework/">Framework</a>
+<ul class="sub-menu">
+	<li id="menu-item-12798" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-12798"><a href="http://ifeve.com/disruptor/">Disruptor 框架指南</a></li>
+	<li id="menu-item-12783" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-12783"><a title="Netty" href="http://ifeve.com/category/netty/">Netty</a></li>
+	<li id="menu-item-12791" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-12791"><a href="http://ifeve.com/category/scala/">Scala</a></li>
+	<li id="menu-item-12312" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-12312"><a href="http://ifeve.com/getting-started-with-stom-index/">Storm 入门</a></li>
+	<li id="menu-item-9218" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-9218"><a href="http://ifeve.com/google-guava/">Guava 官方指南</a></li>
+	<li id="menu-item-20471" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-20471"><a href="http://ifeve.com/velocity-guide/">Apache Velocity 官方指南</a></li>
+	<li id="menu-item-21439" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-21439"><a href="http://ifeve.com/storm-translation/">Apache Storm 官方文档</a></li>
+</ul>
+</li>
+<li id="menu-item-555" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-555"><a href="http://ifeve.com/category/concurrency-translation/">其他译文</a>
+<ul class="sub-menu">
+	<li id="menu-item-2777" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-2777"><a href="http://ifeve.com/java-concurrent/">并发基础</a></li>
+	<li id="menu-item-3340" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-3340"><a href="http://ifeve.com/aqs/">j.u.c同步框架</a></li>
+	<li id="menu-item-2769" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2769"><a href="http://ifeve.com/fj/">Fork Join框架</a></li>
+	<li id="menu-item-9221" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-9221"><a href="http://ifeve.com/doug-lea/">Doug Lea 论文</a></li>
+	<li id="menu-item-4643" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4643"><a href="http://ifeve.com/mechanical-sympathy/">Mechanical Sympathy</a></li>
+	<li id="menu-item-6397" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6397"><a href="http://ifeve.com/stm/">软件事务内存导论</a></li>
+	<li id="menu-item-10845" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-10845"><a href="http://ifeve.com/jsr133-cn/">JSR133中文版</a></li>
+</ul>
+</li>
+<li id="menu-item-103" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-has-children menu-item-103"><a href="http://ifeve.com/category/talk-concurrent/">本站原创</a>
+<ul class="sub-menu">
+	<li id="menu-item-2763" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2763"><a href="http://ifeve.com/talk-concurrency/">聊聊并发</a></li>
+	<li id="menu-item-2753" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2753"><a href="http://ifeve.com/java-memory-model-0/">深入理解Java内存模型</a></li>
+	<li id="menu-item-4862" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4862"><a href="http://ifeve.com/from-javaeye-sys-struct/">从Java视角理解系统结构</a></li>
+	<li id="menu-item-4627" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4627"><a href="http://ifeve.com/ali-itu-agile/">阿里内贸团队敏捷实践</a></li>
+</ul>
+</li>
+<li id="menu-item-7119" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-7119"><a href="http://ifeve.com/category/%e5%b9%b6%e5%8f%91%e4%b9%a6%e7%b1%8d/">并发书籍</a>
+<ul class="sub-menu">
+	<li id="menu-item-10846" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-10846"><a href="http://ifeve.com/art-of-java-concurrent-program/">《Java 并发编程的艺术》迷你书</a></li>
+	<li id="menu-item-6042" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6042"><a href="http://ifeve.com/perfbook/">《深入理解并行编程》</a></li>
+	<li id="menu-item-9172" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-9172"><a href="http://ifeve.com/c-plus-plus-concurrency-in-action/">《C++ 并发编程》</a></li>
+	<li id="menu-item-7785" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-7785"><a href="http://ifeve.com/java-7-concurrency-cookbook/">《Java 7 并发编程指南》</a></li>
+	<li id="menu-item-7120" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-7120"><a href="http://ifeve.com/jvm-concurrency">《Java 虚拟机并发编程》</a></li>
+	<li id="menu-item-12360" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-12360"><a href="http://ifeve.com/getting-started-with-stom-index/">《Storm入门》中文版</a></li>
+</ul>
+</li>
+<li id="menu-item-9171" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-9171"><a href="http://ifeve.com/need-you/">加入我们</a>
+<ul class="sub-menu">
+	<li id="menu-item-3246" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3246"><a href="http://ifeve.com/contribute/">我要投稿</a></li>
+	<li id="menu-item-6854" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-6854"><a href="http://ifeve.com/neitui/">内推阿里</a></li>
+</ul>
+</li>
+<li id="menu-item-105" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-105"><a href="http://ifeve.com/about-site/">关于本站</a>
+<ul class="sub-menu">
+	<li id="menu-item-11306" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-11306"><a href="http://ifeve.com/category/%e6%b4%bb%e5%8a%a8/">活动</a></li>
+	<li id="menu-item-1487" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-1487"><a href="http://ifeve.com/sitemap.html">文章归档</a></li>
+	<li id="menu-item-131" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-131"><a href="http://ifeve.com/about-site/about-me/">关于清英</a></li>
+	<li id="menu-item-7600" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-7600"><a href="http://ifeve.com/ads/">广告合作</a></li>
+</ul>
+</li>
+</ul>    </div>
+  <!-- logo -->
+  <h1 class="logo_text"><a href="http://ifeve.com/">并发编程网 - ifeve.com</a></h1>
+<h2 id="site_description">让天下没有难学的技术</h2>
+ </div>
+
+ <div id="main_content" class="clearfix">
+
+  <div id="left_col">
+      <div id="bread_crumb">
+    <ul class="clearfix">
+     <li id="bc_home"><a href="http://ifeve.com/" title="首页">首页</a></li>
+     <li id="bc_cat"><a href="http://ifeve.com/category/java/">JAVA</a></li>     <li class="last">聊聊并发（二）Java SE1.6中的Synchronized</li>
+    </ul>
+   </div>
+   
+   
+   <div class="post_wrap clearfix" id="single">
+    <div class="post">
+     <h3 class="title"><span>聊聊并发（二）Java SE1.6中的Synchronized</span></h3>
+     <div class="post_content">
+      <p>本文属作者原创，原文发表于InfoQ：<a href="http://www.infoq.com/cn/articles/java-se-16-synchronized" onclick="javascript:window.open(&#39;http://www.infoq.com/cn/articles/java-se-16-synchronized&#39;); return false;">http://www.infoq.com/cn/articles/java-se-16-synchronized</a></p>
+<h2>1 引言</h2>
+<p>在多线程并发编程中Synchronized一直是元老级角色，很多人都会称呼它为重量级锁，但是随着Java SE1.6对Synchronized进行了各种优化之后，有些情况下它并不那么重了，本文详细介绍了Java SE1.6中为了减少获得锁和释放锁带来的性能消耗而引入的偏向锁和轻量级锁，以及锁的存储结构和升级过程。</p>
+<p><span id="more-21"></span></p>
+<h2>2 术语定义</h2>
+<table width="388" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="59">术语</td>
+<td valign="top" width="123">英文</td>
+<td valign="top" width="206">说明</td>
+</tr>
+<tr>
+<td valign="top" width="59">CAS</td>
+<td valign="top" width="123">Compare and Swap</td>
+<td valign="top" width="206">比较并设置。用于在硬件层面上提供原子性操作。在&nbsp;Intel&nbsp;处理器中，比较并交换通过指令cmpxchg实现。比较是否和给定的数值一致，如果一致则修改，不一致则不修改。</td>
+</tr>
+</tbody>
+</table>
+<h2>3 同步的基础</h2>
+<p>Java中的每一个对象都可以作为锁。</p>
+<ul>
+<li>对于同步方法，锁是当前实例对象。</li>
+<li>对于静态同步方法，锁是当前对象的Class对象。</li>
+<li>对于同步方法块，锁是Synchonized括号里配置的对象。</li>
+</ul>
+<p>当一个线程试图访问同步代码块时，它首先必须得到锁，退出或抛出异常时必须释放锁。那么锁存在哪里呢？锁里面会存储什么信息呢？</p>
+<h2>4 同步的原理</h2>
+<p>JVM规范规定JVM基于进入和退出Monitor对象来实现方法同步和代码块同步，但两者的实现细节不一样。代码块同步是使用monitorenter和monitorexit指令实现，而方法同步是使用另外一种方式实现的，细节在JVM规范里并没有详细说明，但是方法的同步同样可以使用这两个指令来实现。monitorenter指令是在编译后插入到同步代码块的开始位置，而monitorexit是插入到方法结束处和异常处， JVM要保证每个monitorenter必须有对应的monitorexit与之配对。任何对象都有一个 monitor 与之关联，当且一个monitor 被持有后，它将处于锁定状态。线程执行到 monitorenter 指令时，将会尝试获取对象所对应的 monitor 的所有权，即尝试获得对象的锁。</p>
+<h3>4.1 Java对象头</h3>
+<p>锁存在Java对象头里。如果对象是数组类型，则虚拟机用3个Word（字宽）存储对象头，如果对象是非数组类型，则用2字宽存储对象头。在32位虚拟机中，一字宽等于四字节，即32bit。</p>
+<table width="417" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="59">长度</td>
+<td valign="top" width="159">内容</td>
+<td valign="top" width="198">说明</td>
+</tr>
+<tr>
+<td valign="top" width="59">32/64bit</td>
+<td valign="top" width="159">Mark Word</td>
+<td valign="top" width="198">存储对象的hashCode或锁信息等。</td>
+</tr>
+<tr>
+<td valign="top" width="59">32/64bit</td>
+<td valign="top" width="159">Class Metadata Address</td>
+<td valign="top" width="198">存储到对象类型数据的指针</td>
+</tr>
+<tr>
+<td valign="top" width="59">32/64bit</td>
+<td valign="top" width="159">Array length</td>
+<td valign="top" width="198">数组的长度（如果当前对象是数组）</td>
+</tr>
+</tbody>
+</table>
+<p>Java对象头里的Mark Word里默认存储对象的HashCode，分代年龄和锁标记位。32位JVM的Mark Word的默认存储结构如下：</p>
+<table border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="76"></td>
+<td valign="top" width="106">25 bit</td>
+<td valign="top" width="85">4bit</td>
+<td valign="top" width="85">1bit是否是偏向锁</td>
+<td valign="top" width="73">2bit锁标志位</td>
+</tr>
+<tr>
+<td valign="top" width="76">无锁状态</td>
+<td valign="top" width="106">对象的hashCode</td>
+<td valign="top" width="85">对象分代年龄</td>
+<td valign="top" width="85">0</td>
+<td valign="top" width="73">01</td>
+</tr>
+</tbody>
+</table>
+<p>在运行期间Mark Word里存储的数据会随着锁标志位的变化而变化。Mark Word可能变化为存储以下4种数据：</p>
+<table width="431" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td rowspan="2" valign="top" width="76"><strong>锁状态</strong></td>
+<td colspan="3" valign="top" width="106">
+<p align="center">25 bit</p>
+</td>
+<td rowspan="2" valign="top" width="85">
+<p align="center">4bit</p>
+</td>
+<td valign="top" width="85">1bit</td>
+<td valign="top" width="78">2bit</td>
+</tr>
+<tr>
+<td colspan="2" valign="top" width="51">23bit</td>
+<td valign="top" width="56">2bit</td>
+<td valign="top" width="85">是否是偏向锁</td>
+<td valign="top" width="78">锁标志位</td>
+</tr>
+<tr>
+<td valign="top" width="76">轻量级锁</td>
+<td colspan="5" valign="top" width="276">指向栈中锁记录的指针</td>
+<td valign="top" width="78">00</td>
+</tr>
+<tr>
+<td valign="top" width="76">重量级锁</td>
+<td colspan="5" valign="top" width="276">指向互斥量（重量级锁）的指针</td>
+<td valign="top" width="78">10</td>
+</tr>
+<tr>
+<td valign="top" width="76">GC标记</td>
+<td colspan="5" valign="top" width="276">空</td>
+<td valign="top" width="78">11</td>
+</tr>
+<tr>
+<td valign="top" width="76">偏向锁</td>
+<td valign="top" width="50">线程ID</td>
+<td colspan="2" valign="top" width="57">Epoch</td>
+<td valign="top" width="85">对象分代年龄</td>
+<td valign="top" width="85">1</td>
+<td valign="top" width="78">01</td>
+</tr>
+</tbody>
+</table>
+<p>在64位虚拟机下，Mark Word是64bit大小的，其存储结构如下：</p>
+<table width="424" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td rowspan="2" valign="top" width="48"><strong>锁状态</strong></td>
+<td valign="top" width="64">
+<p align="center">25bit</p>
+</td>
+<td valign="top" width="71">
+<p align="center">31bit</p>
+</td>
+<td valign="top" width="71">
+<p align="center">1bit</p>
+</td>
+<td valign="top" width="64">
+<p align="center">4bit</p>
+</td>
+<td colspan="2" valign="top" width="50">1bit</td>
+<td valign="top" width="56">2bit</td>
+</tr>
+<tr>
+<td valign="top" width="64"></td>
+<td valign="top" width="71"></td>
+<td valign="top" width="71">cms_free</td>
+<td valign="top" width="64">分代年龄</td>
+<td colspan="2" valign="top" width="50">偏向锁</td>
+<td valign="top" width="56">锁标志位</td>
+</tr>
+<tr>
+<td valign="top" width="48">无锁</td>
+<td valign="top" width="64">unused</td>
+<td valign="top" width="71">hashCode</td>
+<td valign="top" width="71"></td>
+<td valign="top" width="64"></td>
+<td valign="top" width="50">0</td>
+<td colspan="2" valign="top" width="57">01</td>
+</tr>
+<tr>
+<td valign="top" width="48">偏向锁</td>
+<td colspan="2" valign="top" width="135">ThreadID(54bit) Epoch(2bit)</td>
+<td valign="top" width="71"></td>
+<td valign="top" width="64"></td>
+<td valign="top" width="50">1</td>
+<td colspan="2" valign="top" width="57">01</td>
+</tr>
+</tbody>
+</table>
+<h3>4.2 锁的升级</h3>
+<p>Java SE1.6为了减少获得锁和释放锁所带来的性能消耗，引入了“偏向锁”和“轻量级锁”，所以在Java SE1.6里锁一共有四种状态，无锁状态，偏向锁状态，轻量级锁状态和重量级锁状态，它会随着竞争情况逐渐升级。锁可以升级但不能降级，意味着偏向锁升级成轻量级锁后不能降级成偏向锁。这种锁升级却不能降级的策略，目的是为了提高获得锁和释放锁的效率，下文会详细分析。</p>
+<h3>4.3 偏向锁</h3>
+<p>Hotspot的作者经过以往的研究发现大多数情况下锁不仅不存在多线程竞争，而且总是由同一线程多次获得，为了让线程获得锁的代价更低而引入了偏向锁。当一个线程访问同步块并获取锁时，会在对象头和栈帧中的锁记录里存储锁偏向的线程ID，以后该线程在进入和退出同步块时不需要花费CAS操作来加锁和解锁，而只需简单的测试一下对象头的Mark Word里是否存储着指向当前线程的偏向锁，如果测试成功，表示线程已经获得了锁，如果测试失败，则需要再测试下Mark Word中偏向锁的标识是否设置成1（表示当前是偏向锁），如果没有设置，则使用CAS竞争锁，如果设置了，则尝试使用CAS将对象头的偏向锁指向当前线程。</p>
+<p><strong>偏向锁的撤销</strong>：偏向锁使用了一种等到竞争出现才释放锁的机制，所以当其他线程尝试竞争偏向锁时，持有偏向锁的线程才会释放锁。偏向锁的撤销，需要等待全局安全点（在这个时间点上没有字节码正在执行），它会首先暂停拥有偏向锁的线程，然后检查持有偏向锁的线程是否活着，如果线程不处于活动状态，则将对象头设置成无锁状态，如果线程仍然活着，拥有偏向锁的栈会被执行，遍历偏向对象的锁记录，栈中的锁记录和对象头的Mark Word要么重新偏向于其他线程，要么恢复到无锁或者标记对象不适合作为偏向锁，最后唤醒暂停的线程。下图中的线程1演示了偏向锁初始化的流程，线程2演示了偏向锁撤销的流程。</p>
+<p><a href="http://ifeve.com/java-synchronized/%e5%81%8f%e5%90%91%e9%94%81%e7%9a%84%e6%92%a4%e9%94%80/" rel="attachment wp-att-309"><img class="alignnone size-full wp-image-309" alt="偏向锁的撤销" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/偏向锁的撤销.png" width="865" height="969"></a></p>
+<p>关闭偏向锁：偏向锁在Java 6和Java 7里是默认启用的，但是它在应用程序启动几秒钟之后才激活，如有必要可以使用JVM参数来关闭延迟-XX：BiasedLockingStartupDelay = 0。如果你确定自己应用程序里所有的锁通常情况下处于竞争状态，可以通过JVM参数关闭偏向锁-XX:-UseBiasedLocking=false，那么默认会进入轻量级锁状态。</p>
+<h3>4.4 轻量级锁</h3>
+<p><strong>轻量级锁加锁</strong>：线程在执行同步块之前，JVM会先在当前线程的栈桢中创建用于存储锁记录的空间，并将对象头中的Mark Word复制到锁记录中，官方称为Displaced Mark Word。然后线程尝试使用CAS将对象头中的Mark Word替换为指向锁记录的指针。如果成功，当前线程获得锁，如果失败，表示其他线程竞争锁，当前线程便尝试使用自旋来获取锁。</p>
+<p><strong>轻量级锁解锁</strong>：轻量级解锁时，会使用原子的CAS操作来将Displaced Mark Word替换回到对象头，如果成功，则表示没有竞争发生。如果失败，表示当前锁存在竞争，锁就会膨胀成重量级锁。下图是两个线程同时争夺锁，导致锁膨胀的流程图。<br>
+<a href="http://ifeve.com/java-synchronized/%e8%bd%bb%e9%87%8f%e7%ba%a7%e9%94%81/" rel="attachment wp-att-307"><img class="alignnone size-full wp-image-307" alt="轻量级锁" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/轻量级锁.png" width="865" height="840"></a></p>
+<p>因为自旋会消耗CPU，为了避免无用的自旋（比如获得锁的线程被阻塞住了），一旦锁升级成重量级锁，就不会再恢复到轻量级锁状态。当锁处于这个状态下，其他线程试图获取锁时，都会被阻塞住，当持有锁的线程释放锁之后会唤醒这些线程，被唤醒的线程就会进行新一轮的夺锁之争。</p>
+<h2>5 锁的优缺点对比</h2>
+<table border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="64">
+<p align="left">锁</p>
+</td>
+<td valign="top" width="113">
+<p align="left">优点</p>
+</td>
+<td valign="top" width="137">
+<p align="left">缺点</p>
+</td>
+<td valign="top" width="106">
+<p align="left">适用场景</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="64">
+<p align="left">偏向锁</p>
+</td>
+<td valign="top" width="113">
+<p align="left">加锁和解锁不需要额外的消耗，和执行非同步方法比仅存在纳秒级的差距。</p>
+</td>
+<td valign="top" width="137">
+<p align="left">如果线程间存在锁竞争，会带来额外的锁撤销的消耗。</p>
+</td>
+<td valign="top" width="106">
+<p align="left">适用于只有一个线程访问同步块场景。</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="64">
+<p align="left">轻量级锁</p>
+</td>
+<td valign="top" width="113">
+<p align="left">竞争的线程不会阻塞，提高了程序的响应速度。</p>
+</td>
+<td valign="top" width="137">
+<p align="left">如果始终得不到锁竞争的线程使用自旋会消耗CPU。</p>
+</td>
+<td valign="top" width="106">
+<p align="left">追求响应时间。</p>
+<p align="left">同步块执行速度非常快。</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="64">
+<p align="left">重量级锁</p>
+</td>
+<td valign="top" width="113">
+<p align="left">线程竞争不使用自旋，不会消耗CPU。</p>
+</td>
+<td valign="top" width="137">
+<p align="left">线程阻塞，响应时间缓慢。</p>
+</td>
+<td valign="top" width="106">
+<p align="left">追求吞吐量。</p>
+<p align="left">同步块执行速度较长。</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h2>6 参考源码</h2>
+<p>本文一些内容参考了<a href="http://hg.openjdk.java.net/hsx/hotspot-main/hotspot/file/61b82be3b1ff/" onclick="javascript:window.open(&#39;http://hg.openjdk.java.net/hsx/hotspot-main/hotspot/file/61b82be3b1ff/&#39;); return false;">HotSpot</a>源码 。对象头源码markOop.hpp。偏向锁源码biasedLocking.cpp。以及其他源码ObjectMonitor.cpp和BasicLock.cpp。</p>
+<h2>7 参考资料</h2>
+<ul>
+<li><a href="http://www.oracle.com/technetwork/java/javase/tech/biasedlocking-oopsla2006-preso-150106.pdf" onclick="javascript:window.open(&#39;http://www.oracle.com/technetwork/java/javase/tech/biasedlocking-oopsla2006-preso-150106.pdf&#39;); return false;">偏向锁</a></li>
+<li><a href="http://pdffinder.net/Java-Overview-and-Java-SE-6-What's-New.html" onclick="javascript:window.open(&#39;http://pdffinder.net/Java-Overview-and-Java-SE-6-What&#39;s-New.html&#39;); return false;">java-overview-and-java-se6</a>&nbsp;Synchronization Optimization章节</li>
+<li>Dave Dice&nbsp;<a href="http://home.comcast.net/~pjbishop/Dave/MustangSync.pdf" onclick="javascript:window.open(&#39;http://home.comcast.net/~pjbishop/Dave/MustangSync.pdf&#39;); return false;">“Synchronization in Java SE 6”</a></li>
+<li><a href="http://java.sun.com/performance/reference/whitepapers/6_performance.html#2.1.3" onclick="javascript:window.open(&#39;http://java.sun.com/performance/reference/whitepapers/6_performance.html#2.1.3&#39;); return false;">Java SE 6 Performance White Paper</a>&nbsp;2.1章节</li>
+<li><a href="http://docs.oracle.com/javase/specs/jvms/se7/html/index.html" onclick="javascript:window.open(&#39;http://docs.oracle.com/javase/specs/jvms/se7/html/index.html&#39;); return false;">JVM规范（Java SE 7）</a></li>
+<li><a href="http://docs.oracle.com/javase/specs/jls/se7/html/" onclick="javascript:window.open(&#39;http://docs.oracle.com/javase/specs/jls/se7/html/&#39;); return false;">Java语言规范（JAVA SE7）</a></li>
+<li><a href="http://book.douban.com/subject/6522893/" onclick="javascript:window.open(&#39;http://book.douban.com/subject/6522893/&#39;); return false;">周志明的《深入理解Java虚拟机》</a></li>
+<li><a href="http://kenwublog.com/theory-of-java-biased-locking" onclick="javascript:window.open(&#39;http://kenwublog.com/theory-of-java-biased-locking&#39;); return false;">Java偏向锁实现原理</a></li>
+<li><a href="https://wikis.oracle.com/display/HotSpotInternals/Synchronization" onclick="javascript:window.open(&#39;https://wikis.oracle.com/display/HotSpotInternals/Synchronization&#39;); return false;">hotspot&nbsp;Synchronization</a></li>
+</ul>
+<div style="margin-top: 15px; font-style: italic">
+<p><strong>原创文章，转载请注明：</strong> 转载自<a href="http://ifeve.com/">并发编程网 – ifeve.com</a></p>
+<p><strong>本文链接地址:</strong> <a href="./聊聊并发（二）Java SE1.6中的Synchronized_files/聊聊并发（二）Java SE1.6中的Synchronized.html">聊聊并发（二）Java SE1.6中的Synchronized</a></p>
+</div>
+<p style="margin-top: 0; margin-bottom: 15px; color: #888888; font-size: 80%; font-style: italic">文章的脚注信息由WordPress的<a href="http://easwy.com/blog/wordpress/wp-posturl/" style="color: #8888FF; text-decoration: underline;" onclick="javascript:window.open(&#39;http://easwy.com/blog/wordpress/wp-posturl/&#39;); return false;">wp-posturl插件</a>自动生成</p>
+<div style="clear:both; margin-top:5px; margin-bottom:5px;"></div><div style="float:left"><!-- JiaThis Button BEGIN -->
+<div id="jiathis_style_32x32">
+	<a class="jiathis_button_qzone" title="分享到QQ空间"><span class="jiathis_txt jtico jtico_qzone"></span></a>
+	<a class="jiathis_button_tsina" title="分享到新浪微博"><span class="jiathis_txt jtico jtico_tsina"></span></a>
+	<a class="jiathis_button_tqq" title="分享到腾讯微博"><span class="jiathis_txt jtico jtico_tqq"></span></a>
+	<a class="jiathis_button_renren" title="分享到人人网"><span class="jiathis_txt jtico jtico_renren"></span></a>
+	<a class="jiathis_button_kaixin001" title="分享到开心网"><span class="jiathis_txt jtico jtico_kaixin001"></span></a>
+	<a href="http://www.jiathis.com/share/" class="jiathis jiathis_txt jtico jtico_jiathis" onclick="javascript:window.open(&#39;http://www.jiathis.com/share/&#39;); return false;"></a>
+	<a class="jiathis_counter_style"><span class="jiathis_button_expanded jiathis_counter jiathis_bubble_style" id="jiathis_counter_78" title="累计分享7次">7</span></a>
+</div>
+<script type="text/javascript" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/jia.js" charset="utf-8"></script><script type="text/javascript" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/plugin.client.js" charset="utf-8"></script>
+<!-- JiaThis Button END --></div><div style="clear:both; margin-top:5px; margin-bottom:5px;"></div>
+                         <div class="abh_box abh_box_down abh_box_business"><ul class="abh_tabs"> <li class="abh_about abh_active"><a href="http://ifeve.com/java-synchronized/#abh_about">About</a></li> <li class="abh_posts"><a href="http://ifeve.com/java-synchronized/#abh_posts">Latest Posts</a></li></ul><div class="abh_tab_content"><section class="vcard abh_about_tab abh_tab" style="display:block"><div class="abh_image"><a href="http://weibo.com/kirals" class="url" title="方 腾飞" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;"><img alt="" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/a21e2b8f4893347e62eeca7597f04ebc" srcset="http://gravatar0.233.wiki/avatar/a21e2b8f4893347e62eeca7597f04ebc?s=160&amp;d=mm&amp;r=g 2x" class="avatar avatar-80 photo" height="80" width="80"></a></div><div class="abh_social"> </div><div class="abh_text"><h3 class="fn name"><a href="http://weibo.com/kirals" class="url" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">方 腾飞</a></h3><div class="abh_job"></div><div class="description note abh_description">花名清英，并发网创始人，蚂蚁金服技术专家。目前工作于支付宝微贷事业部，关注互联网金融，并发编程和敏捷实践。</div></div> </section><section class="abh_posts_tab abh_tab"><div class="abh_image"><a href="http://weibo.com/kirals" class="url" title="方 腾飞" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;"><img alt="" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/a21e2b8f4893347e62eeca7597f04ebc" srcset="http://gravatar0.233.wiki/avatar/a21e2b8f4893347e62eeca7597f04ebc?s=160&amp;d=mm&amp;r=g 2x" class="avatar avatar-80 photo" height="80" width="80"></a></div><div class="abh_social"> </div><div class="abh_text"><h4>Latest posts by 方 腾飞 <span class="abh_allposts">(<a href="http://ifeve.com/author/admin/">see all</a>)</span></h4><div class="abh_description note"><ul>				<li>					<a href="http://ifeve.com/ali-think-12/">阿里感悟（十一）如何准备面试</a><span> - 2015 年 10 月 6 日</span>				</li>				<li>					<a href="http://ifeve.com/think-in-ali-10/">阿里感悟（十）如何写好简历</a><span> - 2015 年 10 月 6 日</span>				</li>				<li>					<a href="http://ifeve.com/zookeeper-apache/">《ZooKeeper官方指南》翻译邀请</a><span> - 2015 年 10 月 5 日</span>				</li></ul></div></div> </section></div> </div><div class="yarpp-related">
+<h3>Related posts:</h3><ol>
+<li><a href="http://ifeve.com/java-blocking-queue/" rel="bookmark" title="聊聊并发（七）——Java中的阻塞队列">聊聊并发（七）——Java中的阻塞队列 </a></li>
+<li><a href="http://ifeve.com/producers-and-consumers-mode/" rel="bookmark" title="聊聊并发（十）生产者消费者模式">聊聊并发（十）生产者消费者模式 </a></li>
+<li><a href="http://ifeve.com/volatile/" rel="bookmark" title="聊聊并发（一）深入分析Volatile的实现原理">聊聊并发（一）深入分析Volatile的实现原理 </a></li>
+<li><a href="http://ifeve.com/concurrentlinkedqueue/" rel="bookmark" title="聊聊并发（六）ConcurrentLinkedQueue的实现原理分析">聊聊并发（六）ConcurrentLinkedQueue的实现原理分析 </a></li>
+<li><a href="http://ifeve.com/atomic-operation/" rel="bookmark" title="聊聊并发（五）原子操作的实现原理">聊聊并发（五）原子操作的实现原理 </a></li>
+<li><a href="http://ifeve.com/java-threadpool/" rel="bookmark" title="聊聊并发（三）Java线程池的分析和使用">聊聊并发（三）Java线程池的分析和使用 </a></li>
+<li><a href="http://ifeve.com/concurrenthashmap/" rel="bookmark" title="聊聊并发（四）深入分析ConcurrentHashMap">聊聊并发（四）深入分析ConcurrentHashMap </a></li>
+<li><a href="http://ifeve.com/java-copy-on-write/" rel="bookmark" title="聊聊并发-Java中的Copy-On-Write容器">聊聊并发-Java中的Copy-On-Write容器 </a></li>
+<li><a href="http://ifeve.com/talk-concurrency-forkjoin/" rel="bookmark" title="聊聊并发（八）——Fork/Join框架介绍">聊聊并发（八）——Fork/Join框架介绍 </a></li>
+<li><a href="http://ifeve.com/java-faking-closure-with-factory-to/" rel="bookmark" title="Java FP: 伪造闭包工厂，创建域对象">Java FP: 伪造闭包工厂，创建域对象 </a></li>
+<li><a href="http://ifeve.com/java-7-concurrency-cookbook/" rel="bookmark" title="Java 7 并发编程指南中文版">Java 7 并发编程指南中文版 </a></li>
+<li><a href="http://ifeve.com/java-io-java-system/" rel="bookmark" title="Java I/O : Java中的进制详解">Java I/O : Java中的进制详解 </a></li>
+<li><a href="http://ifeve.com/buffers/" rel="bookmark" title="Java NIO系列教程（三） Buffer">Java NIO系列教程（三） Buffer </a></li>
+<li><a href="http://ifeve.com/java-se-8-concurrent-tool-enhance/" rel="bookmark" title="Java SE 8 在并发工具方面的加强">Java SE 8 在并发工具方面的加强 </a></li>
+<li><a href="http://ifeve.com/20-examples-of-date-and-time-api-from-java8/" rel="bookmark" title="Java 8新的时间日期库的20个使用示例">Java 8新的时间日期库的20个使用示例 </a></li>
+</ol>
+</div>
+           </div><!-- END .post_content -->
+    </div>
+    <div class="meta">
+          <ul>
+      <li class="post_date clearfix">
+       <span class="date">22</span>
+       <span class="month">Oct</span>
+       <span class="year">2012</span>
+      </li>
+      
+<li class="post_comment">
+9,083 人阅读</li>
+
+      <li class="post_author"><a href="http://ifeve.com/author/admin/" title="由方 腾飞发布" rel="author">方 腾飞</a></li>      <li class="post_category"><a href="http://ifeve.com/category/java/" rel="category tag">JAVA</a></li><li><a href="http://ifeve.com/category/talk-concurrent/" rel="category tag">本站原创</a></li>       <li class="post_category"><div id="post-ratings-21" class="post-ratings" itemscope="" itemtype="http://schema.org/Article" data-nonce="6e1bf05fa6"><img id="rating_21_1" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/rating_on.gif" alt="好烂啊" title="好烂啊" onmouseover="current_rating(21, 1, &#39;好烂啊&#39;);" onmouseout="ratings_off(4.4, 5, 0);" onclick="rate_post();" onkeypress="rate_post();" style="cursor: pointer; border: 0px;"><img id="rating_21_2" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/rating_on.gif" alt="没价值" title="没价值" onmouseover="current_rating(21, 2, &#39;没价值&#39;);" onmouseout="ratings_off(4.4, 5, 0);" onclick="rate_post();" onkeypress="rate_post();" style="cursor: pointer; border: 0px;"><img id="rating_21_3" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/rating_on.gif" alt="凑合看看" title="凑合看看" onmouseover="current_rating(21, 3, &#39;凑合看看&#39;);" onmouseout="ratings_off(4.4, 5, 0);" onclick="rate_post();" onkeypress="rate_post();" style="cursor: pointer; border: 0px;"><img id="rating_21_4" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/rating_on.gif" alt="还不错" title="还不错" onmouseover="current_rating(21, 4, &#39;还不错&#39;);" onmouseout="ratings_off(4.4, 5, 0);" onclick="rate_post();" onkeypress="rate_post();" style="cursor: pointer; border: 0px;"><img id="rating_21_5" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/rating_half.gif" alt="超赞" title="超赞" onmouseover="current_rating(21, 5, &#39;超赞&#39;);" onmouseout="ratings_off(4.4, 5, 0);" onclick="rate_post();" onkeypress="rate_post();" style="cursor: pointer; border: 0px;"> (<strong>7</strong> votes, average: <strong>4.43</strong> out of 5)<br><span class="post-ratings-text" id="ratings_21_text"></span><meta itemprop="headline" content="聊聊并发（二）Java SE1.6中的Synchronized"><meta itemprop="description" content="本文属作者原创，原文发表于InfoQ：http://www.infoq.com/cn/articles/java-se-16-synchronized
+1 引言
+在多线程并发编程中Synchronized一直是元老级角色，很多人都会称呼它为重量级锁，但是随着Java SE1.6对Synchronized进行了各种优化之后，有些情况下它并不那么重了，本文详细介绍了Java SE1.6中为了减少获..."><meta itemprop="datePublished" content="2012-10-22T15:53:47+00:00"><meta itemprop="url" content="http://ifeve.com/java-synchronized/"><div style="display: none;" itemprop="aggregateRating" itemscope="" itemtype="http://schema.org/AggregateRating"><meta itemprop="bestRating" content="5"><meta itemprop="worstRating" content="1"><meta itemprop="ratingValue" content="4.43"><meta itemprop="ratingCount" content="7"></div></div><div id="post-ratings-21-loading" class="post-ratings-loading">
+			<img src="./聊聊并发（二）Java SE1.6中的Synchronized_files/loading.gif" width="16" height="16" alt="Loading..." title="Loading..." class="post-ratings-image">Loading...</div></li>       <li class="post_comment"><a href="http://ifeve.com/java-synchronized/#comments">3 条评论</a></li>           </ul>
+         </div>
+   </div><!-- END .post_wrap -->
+
+   
+      <div id="comments_wrapper">
+    
+
+
+
+
+<div id="comment_header" class="clearfix">
+
+ <ul id="comment_header_left">
+  <li id="add_comment"><a href="http://ifeve.com/java-synchronized/#respond">发表评论</a></li>
+  <li id="comment_feed"><a href="http://ifeve.com/comments/feed/" title="RSS订阅评论">RSS订阅评论</a></li>
+ </ul>
+
+ <ul id="comment_header_right">
+   <li id="trackback_switch"><a href="javascript:void(0);">Trackback ( 5 )</a></li>
+   <li id="comment_switch" class="comment_switch_active"><a href="javascript:void(0);">评论 ( 3 )</a></li>
+ </ul>
+
+
+
+</div><!-- END #comment_header -->
+
+<div id="comments">
+
+ <div id="comment_area">
+  <!-- start commnet -->
+  <ol class="commentlist">
+	
+ <li class="comment guest-comment" id="comment-183">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/6b552991a41338e608a6aab63e35ccc1" srcset="http://gravatar0.233.wiki/avatar/6b552991a41338e608a6aab63e35ccc1?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<span id="commentauthor-183">
+
+nicky
+</span>
+     </li>
+     <li class="comment-date">2013/01/29 4:30下午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-synchronized%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-183&#39;, &#39;comment-183&#39;, &#39;comment-content-183&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-183">
+    <p>博主你好呀，有些基础的问题想请教一下<br>
+public class Thread1 implements Runnable{</p>
+<p>    @Override<br>
+    public void run() {</p>
+<p>        synchronized (this) {<br>
+            for(int i = 0 ; i &lt; 10 ; i++)<br>
+                System.out.println(Thread.currentThread().getName() +"     loop    "+i);</p>
+<p>        }</p>
+<p>    }</p>
+<p>    public static void main(String[] args) {</p>
+<p>        Thread1 t1 = new Thread1();</p>
+<p>        Thread1 t2 = new Thread1();<br>
+        Thread ta = new Thread(t1,"a");</p>
+<p>        Thread tb = new Thread(t2,"b");</p>
+<p>        ta.start();</p>
+<p>        tb.start();<br>
+    }</p>
+<p>}<br>
+t1 和t2 是2个对象，为什么也不能同时处理synchronized方法块中的内容呢？</p>
+  </div>
+
+<ul class="children">
+
+ <li class="comment guest-comment" id="comment-189">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/6b552991a41338e608a6aab63e35ccc1" srcset="http://gravatar0.233.wiki/avatar/6b552991a41338e608a6aab63e35ccc1?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<span id="commentauthor-189">
+
+nicky
+</span>
+     </li>
+     <li class="comment-date">2013/01/30 9:53上午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-synchronized%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-189&#39;, &#39;comment-189&#39;, &#39;comment-content-189&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-189">
+    <p>不好意思  是可以同时处理的。。。</p>
+  </div>
+
+</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+
+ <li class="comment guest-comment" id="comment-4624">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/saved_resource" srcset="http://gravatar0.233.wiki/avatar/?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo avatar-default" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<span id="commentauthor-4624">
+
+Ray
+</span>
+     </li>
+     <li class="comment-date">2013/12/19 10:35上午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Fjava-synchronized%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-4624&#39;, &#39;comment-4624&#39;, &#39;comment-content-4624&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-4624">
+    <p>腾飞，你好，有两个问题请教你<br>
+1.偏向锁解锁时，请求锁的线程是否需要以CAS自旋方式等持有锁的线程执行完同步块？<br>
+2.偏向锁解锁时，线程2怎么去暂停线程1呢？已经持有锁的线程无法暂停，只能interrupt</p>
+  </div>
+
+</li><!-- #comment-## -->
+  </ol>
+  <!-- comments END -->
+
+  
+ </div><!-- #comment-list END -->
+
+
+ <div id="trackback_area">
+ <!-- start trackback -->
+ 
+  <div id="trackback_url_wrapper">
+   <label for="trackback_url">TrackBack 地址</label>
+   <input type="text" name="trackback_url" id="trackback_url" size="60" value="http://ifeve.com/java-synchronized/trackback/" readonly="readonly" onfocus="this.select()">
+  </div>
+
+  <ol class="commentlist">
+         <li class="comment">
+    <div class="trackback_time">
+     2014/03/14         </div>
+    <div class="trackback_title">
+     Trackback 来自：<a href="http://www.ng888.com/java-synchronized/" onclick="javascript:window.open(&#39;http://www.ng888.com/java-synchronized/&#39;); return false;">聊聊并发（二）Java SE1.6中的Synchronized | Java学习</a>
+    </div>
+   </li>
+      <li class="comment">
+    <div class="trackback_time">
+     2015/05/05         </div>
+    <div class="trackback_title">
+     Trackback 来自：<a href="http://www.jkeabc.com/p/867836.html" onclick="javascript:window.open(&#39;http://www.jkeabc.com/p/867836.html&#39;); return false;">【java7并发编程实战】—–线程同步基础：synchronized – 剑客|关注科技互联网</a>
+    </div>
+   </li>
+      <li class="comment">
+    <div class="trackback_time">
+     2015/05/05         </div>
+    <div class="trackback_title">
+     Trackback 来自：<a href="http://www.programerhome.com/?p=11325" onclick="javascript:window.open(&#39;http://www.programerhome.com/?p=11325&#39;); return false;">銆恓ava7骞跺彂缂栫▼瀹炴垬銆戔斺撶嚎绋嬪悓姝ュ熀纭锛歴ynchronized | 程序员之家</a>
+    </div>
+   </li>
+      <li class="comment">
+    <div class="trackback_time">
+     2015/06/02         </div>
+    <div class="trackback_title">
+     Trackback 来自：<a href="http://www.aliog.com/16153.html" onclick="javascript:window.open(&#39;http://www.aliog.com/16153.html&#39;); return false;">疯狂Java学习笔记（68）———–synchronized - 编程语言 - 阿里欧歌</a>
+    </div>
+   </li>
+      <li class="comment">
+    <div class="trackback_time">
+     2015/08/05         </div>
+    <div class="trackback_title">
+     Trackback 来自：<a href="http://www.programerhome.com/?p=32572" onclick="javascript:window.open(&#39;http://www.programerhome.com/?p=32572&#39;); return false;">【Java并发编程实战】—–synchronized | 程序员之家</a>
+    </div>
+   </li>
+        </ol>
+
+  <!-- trackback end -->
+ </div><!-- #trackbacklist END -->
+
+ 
+
+
+ 
+ <div class="comment_form_wrapper" id="respond">
+    您必须 <a href="http://ifeve.com/wp-login.php">登陆</a> 后才能发表评论 </div>
+
+ </div><!-- #comment end -->   </div>
+   
+      <div id="previous_next_post_single">
+    <div class="clearfix">
+     <p id="previous_post"><a href="http://ifeve.com/volatile/" rel="prev">聊聊并发（一）深入分析Volatile的实现原理</a></p>     <p id="next_post"><a href="http://ifeve.com/parallel_and_con/" rel="next">并发和并行有什么区别？</a></p>    </div>
+   </div>
+   
+
+  </div><!-- END #left_col -->
+
+  <div id="container"></div>
+
+    <div id="right_col">
+   
+
+<div class="side_box clearfix" id="side_meta_content">
+
+  <ul id="social_link" class="clearfix">
+    <li class="rss_button"><a class="target_blank" href="http://ifeve.com/feed/">rss</a></li>
+       </ul>
+ 
+  <div id="search_area">
+    <form method="get" id="searchform" action="http://ifeve.com/">
+   <div><input id="search_button" class="rollover" type="image" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/search_button.gif" alt="搜索一下" title="搜索一下"></div>
+   <div><input id="search_input" type="text" value="搜索一下" name="s" onfocus="if (this.value == &#39;搜索一下&#39;) this.value = &#39;&#39;;" onblur="if (this.value == &#39;&#39;) this.value = &#39;搜索一下&#39;;"></div>
+  </form>
+   </div>
+ 
+</div>
+
+
+<div id="side_top">
+
+ <div class="side_box widget_text" id="text-17">
+			<div class="textwidget"><!-- 请置于所有广告位代码之前 -->
+<script type="text/javascript" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/m.js"></script>
+<script type="text/javascript">
+BAIDU_CLB_preloadSlots("980251","980252");
+</script><script charset="utf-8" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/ecom"></script>
+<!-- 广告位：右最上 -->
+<script type="text/javascript">BAIDU_CLB_fillSlot("1063991");</script><div id="BAIDU_DUP_wrapper_1063991_0"></div><script charset="utf-8" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/ecom(1)"></script><script charset="utf-8" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/fixed7o.js"></script>
+
+<p>购买<a href="http://s.click.taobao.com/nMgPIwx" onclick="javascript:window.open(&#39;http://s.click.taobao.com/nMgPIwx&#39;); return false;">《Java并发编程的艺术》</a>,UCloud提供云服务</p>
+
+<!-- 广告位：首页右上1 -->
+<script type="text/javascript">BAIDU_CLB_fillSlot("980251");</script><div id="BAIDU_DUP_wrapper_980251_0"><iframe id="baidu_clb_slot_iframe_980251_0" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/聊聊并发（二）Java SE1.6中的Synchronized.html" onload="BAIDU_DUP_CLB_renderFrame(&#39;980251_0&#39;)" width="300" height="80" vspace="0" hspace="0" allowtransparency="true" scrolling="no" marginwidth="0" marginheight="0" frameborder="0" style="border:0; vertical-align:bottom; margin:0; display:block;"></iframe></div>
+
+<br>
+<script language="javascript"> 
+var randomNum = Math.round(Math.random()*2);
+var image=new Array(3);
+image[0]="http://ww4.sinaimg.cn/mw690/005NgQwbgw1evsy1m5y19j308c028747.jpg";
+image[1]="http://ww2.sinaimg.cn/mw690/005NgQwbgw1evsy1kjd94j308c0283yh.jpg";
+image[2]="http://ww1.sinaimg.cn/mw690/005NgQwbgw1evsy1iukeij308c028dfu.jpg";
+var imageUrl=image[randomNum];
+var urls=new Array(3);
+urls[0]="http://yun.lu";
+urls[1]="http://yun.lu";
+urls[2]="http://yun.lu";
+var url = urls[randomNum];
+var adHTML = "<a href='"+url+"' target='_blank'><img src='"+imageUrl+"' border='0'></a>";
+document.write(adHTML);
+</script><a href="http://yun.lu/" onclick="javascript:window.open(&#39;http://yun.lu/&#39;); return false;"><img src="./聊聊并发（二）Java SE1.6中的Synchronized_files/005NgQwbgw1evsy1kjd94j308c0283yh.jpg" border="0"></a>
+
+<br>
+<!-- 广告位：首页右上2 -->
+<script type="text/javascript">BAIDU_CLB_fillSlot("980252");</script><div id="BAIDU_DUP_wrapper_980252_0"></div>
+<script async="" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/adsbygoogle.js"></script>
+<ins class="adsbygoogle" style="display:inline-block;width:336px;height:280px" data-ad-client="ca-pub-9394337417063147" data-ad-slot="8872369516" data-adsbygoogle-status="done"><ins id="aswift_0_expand" style="display:inline-table;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><ins id="aswift_0_anchor" style="display:block;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><iframe width="336" height="280" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" allowfullscreen="true" onload="var i=this.id,s=window.google_iframe_oncopy,H=s&amp;&amp;s.handlers,h=H&amp;&amp;H[i],w=this.contentWindow,d;try{d=w.document}catch(e){}if(h&amp;&amp;d&amp;&amp;(!d.body||!d.body.firstChild)){if(h.call){setTimeout(h,0)}else if(h.match){try{h=s.upd(h,i)}catch(e){}w.location.replace(h)}}" id="aswift_0" name="aswift_0" style="left:0;position:absolute;top:0;"></iframe></ins></ins></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script></div>
+		</div>
+		<div class="side_box widget_recent_entries" id="recent-posts-2">
+		<h3 class="side_title">近期文章</h3>
+		<ul>
+					<li>
+				<a href="http://ifeve.com/ali-think-12/">阿里感悟（十一）如何准备面试</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/dis-session-manager/">大型网站之分布式会话管理</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/think-in-ali-10/">阿里感悟（十）如何写好简历</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/zookeeper-apache/">《ZooKeeper官方指南》翻译邀请</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-dev-kit-working-with-collection/">《Groovy官方文档》Groovy开发套件-使用集合</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/zookeeperover/">《Apache Zookeeper官方文档》2-综述</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/json-code-problem/">JSON数据乱码问题</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/apache-zookeeper-1/">《Apache zookeeper 官方文档》-1简介</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-guide/">《Groovy官方指南》目录</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/java-io-%e4%b9%8b-outputstream%e6%ba%90%e7%a0%81/">Java IO 之 OutputStream源码</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/lru-cache/">使用Redis作为一个LRU缓存</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-syntax/">《Groovy语言规范》-语法</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-ides/">《Groovy官方文档》3.4 开发环境支持</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-dev-kit-io/">《Groovy官方文档》Groovy开发套件-使用IO</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/how-to-navigatehow-to-navigate-and-make-progress/">Adopt Open JDK官方文档(二)如何使用导航和取得进步？</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/java-io-%e4%b9%8b-inputstream%e6%ba%90%e7%a0%81/">Java IO 之 InputStream源码</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/static-factory-methods-vs-traditional-constructors/">静态工厂方法VS构造器</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-and-java/">《Groovy官方文档》1.3 Groovy和Java比较</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/install-groovy/">《Groovy官方文档》1.2安装Groovy</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-download/">《Groovy官方文档》1.1 下载Groovy</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/fault-tolerance/">容错技术介绍</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy/">《Groovy官方指南》翻译邀请</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/httpifeve-comvelocity-guide-summary/">Apache Velocity官方指南-总结</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/java8/">Java8简明指南</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/adopt-open-jd-10/">Adopt Open JDK官方文档（十）</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/lock-reentrantlock/">《Java并发编程从入门到精通》显示锁Lock和ReentrantLock</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/apache-storm/">Apache Storm 官方文档中文版</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/storm-internal-implementation/">Apache Storm 官方文档 —— 内部技术实现</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/java-concurrency-thread-safe/">《 Java并发编程从入门到精通》Thread安全与不安全</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/storm-acking-framework-implementation/">Apache Storm 官方文档 —— Ack 框架的实现</a>
+						</li>
+				</ul>
+		</div>
+<div class="side_box widget_text" id="text-10">
+			<div class="textwidget"><script async="" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/adsbygoogle.js"></script>
+<!-- 首页－右上－2 -->
+<ins class="adsbygoogle" style="display:inline-block;width:336px;height:280px" data-ad-client="ca-pub-9394337417063147" data-ad-slot="8872369516" data-adsbygoogle-status="done"><ins id="aswift_1_expand" style="display:inline-table;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><ins id="aswift_1_anchor" style="display:block;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><iframe width="336" height="280" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" allowfullscreen="true" onload="var i=this.id,s=window.google_iframe_oncopy,H=s&amp;&amp;s.handlers,h=H&amp;&amp;H[i],w=this.contentWindow,d;try{d=w.document}catch(e){}if(h&amp;&amp;d&amp;&amp;(!d.body||!d.body.firstChild)){if(h.call){setTimeout(h,0)}else if(h.match){try{h=s.upd(h,i)}catch(e){}w.location.replace(h)}}" id="aswift_1" name="aswift_1" style="left:0;position:absolute;top:0;"></iframe></ins></ins></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script></div>
+		</div>
+<div class="side_box widget_views" id="views-4">
+<h3 class="side_title">热门文章</h3>
+<ul>
+<li><a href="http://ifeve.com/google-guava/" title="Google Guava官方教程（中文版）">Google Guava官方教程（中文版）</a> 173,964 人阅读 </li><li><a href="http://ifeve.com/overview/" title="Java NIO系列教程（一） Java NIO 概述">Java NIO系列教程（一） Java NIO 概述</a> 99,609 人阅读 </li><li><a href="http://ifeve.com/java-concurrency-thread-directory/" title="Java并发性和多线程介绍目录">Java并发性和多线程介绍目录</a> 79,143 人阅读 </li><li><a href="http://ifeve.com/java-nio-all/" title="Java NIO 系列教程">Java NIO 系列教程</a> 76,783 人阅读 </li><li><a href="http://ifeve.com/java-nio-vs-io/" title="Java NIO系列教程（十二） Java NIO与IO">Java NIO系列教程（十二） Java NIO与IO</a> 70,127 人阅读 </li><li><a href="http://ifeve.com/java-7-concurrency-cookbook/" title="Java 7 并发编程指南中文版">Java 7 并发编程指南中文版</a> 59,103 人阅读 </li><li><a href="http://ifeve.com/selectors/" title="Java NIO系列教程（六） Selector">Java NIO系列教程（六） Selector</a> 57,665 人阅读 </li><li><a href="http://ifeve.com/channels/" title="Java NIO系列教程（二） Channel">Java NIO系列教程（二） Channel</a> 52,743 人阅读 </li><li><a href="http://ifeve.com/buffers/" title="Java NIO系列教程（三） Buffer">Java NIO系列教程（三） Buffer</a> 51,999 人阅读 </li><li><a href="http://ifeve.com/getting-started-with-stom-index/" title="《Storm入门》中文版">《Storm入门》中文版</a> 45,584 人阅读 </li><li><a href="http://ifeve.com/netty5-user-guide/" title="Netty 5用户指南">Netty 5用户指南</a> 42,230 人阅读 </li><li><a href="http://ifeve.com/disruptor/" title="并发框架Disruptor译文">并发框架Disruptor译文</a> 40,519 人阅读 </li><li><a href="http://ifeve.com/locks-are-bad/" title="剖析Disruptor:为什么会这么快？(一)锁的缺点">剖析Disruptor:为什么会这么快？(一)锁的缺点</a> 39,406 人阅读 </li><li><a href="http://ifeve.com/socket-channel/" title="Java NIO系列教程（八） SocketChannel">Java NIO系列教程（八） SocketChannel</a> 35,959 人阅读 </li><li><a href="http://ifeve.com/perfbook/" title="《深入理解并行编程》中文版">《深入理解并行编程》中文版</a> 35,275 人阅读 </li><li><a href="http://ifeve.com/getting-started-with-storm-1/" title="Storm入门之第一章">Storm入门之第一章</a> 34,567 人阅读 </li><li><a href="http://ifeve.com/file-channel/" title="Java NIO系列教程（七） FileChannel">Java NIO系列教程（七） FileChannel</a> 33,101 人阅读 </li><li><a href="http://ifeve.com/netty1/" title="Netty源码解读（一）概述">Netty源码解读（一）概述</a> 29,929 人阅读 </li><li><a href="http://ifeve.com/google-guava-using-and-avoiding-null/" title="[Google Guava] 1.1-使用和避免null">[Google Guava] 1.1-使用和避免null</a> 29,819 人阅读 </li><li><a href="http://ifeve.com/java-concurrency-constructs/" title="Java并发结构">Java并发结构</a> 29,603 人阅读 </li></ul>
+</div>
+<div class="side_box widget_text" id="text-7">
+			<div class="textwidget"><script async="" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/adsbygoogle.js"></script>
+<ins class="adsbygoogle" style="display:inline-block;width:336px;height:280px" data-ad-client="ca-pub-9394337417063147" data-ad-slot="4721371513" data-adsbygoogle-status="done"><ins id="aswift_2_expand" style="display:inline-table;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><ins id="aswift_2_anchor" style="display:block;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><iframe width="336" height="280" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" allowfullscreen="true" onload="var i=this.id,s=window.google_iframe_oncopy,H=s&amp;&amp;s.handlers,h=H&amp;&amp;H[i],w=this.contentWindow,d;try{d=w.document}catch(e){}if(h&amp;&amp;d&amp;&amp;(!d.body||!d.body.firstChild)){if(h.call){setTimeout(h,0)}else if(h.match){try{h=s.upd(h,i)}catch(e){}w.location.replace(h)}}" id="aswift_2" name="aswift_2" style="left:0;position:absolute;top:0;"></iframe></ins></ins></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+</div>
+		</div>
+<div class="side_box widget_recent_comments" id="recent-comments-2">
+<h3 class="side_title">近期评论</h3>
+<ul id="recentcomments"><li class="recentcomments"><span class="comment-author-link">yangcheng33</span>发表在《<a href="http://ifeve.com/book/comment-page-1/#comment-26402">《Java并发编程的艺术》勘误和支持</a>》</li><li class="recentcomments"><span class="comment-author-link">yangcheng33</span>发表在《<a href="http://ifeve.com/book/comment-page-1/#comment-26401">《Java并发编程的艺术》勘误和支持</a>》</li><li class="recentcomments"><span class="comment-author-link">平僧</span>发表在《<a href="http://ifeve.com/java-io-network/comment-page-1/#comment-26400">Java IO: 网络</a>》</li><li class="recentcomments"><span class="comment-author-link">ashitaka</span>发表在《<a href="http://ifeve.com/introduce-abstractqueuedsynchronizer/comment-page-1/#comment-26399">AbstractQueuedSynchronizer的介绍和原理分析</a>》</li><li class="recentcomments"><span class="comment-author-link">qooge</span>发表在《<a href="http://ifeve.com/lru-cache/comment-page-1/#comment-26398">使用Redis作为一个LRU缓存</a>》</li><li class="recentcomments"><span class="comment-author-link">sososolo</span>发表在《<a href="http://ifeve.com/lru-cache/comment-page-1/#comment-26397">使用Redis作为一个LRU缓存</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://weibo.com/kirals" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">方 腾飞</a></span>发表在《<a href="http://ifeve.com/adopt-openjdk-translate-plan/comment-page-1/#comment-26396">Adopt OpenJDK 翻译计划</a>》</li><li class="recentcomments"><span class="comment-author-link">王山山</span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26395">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link">q1505740617</span>发表在《<a href="http://ifeve.com/adopt-openjdk-translate-plan/comment-page-1/#comment-26394">Adopt OpenJDK 翻译计划</a>》</li><li class="recentcomments"><span class="comment-author-link">JackWang</span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26393">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link">tomasxxoo</span>发表在《<a href="http://ifeve.com/apache-storm/comment-page-1/#comment-26392">Apache Storm 官方文档中文版</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://weibo.com/kirals" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">方 腾飞</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26391">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://weibo.com/kirals" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">方 腾飞</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26390">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link">JackWang</span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26389">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://weibo.com/kirals" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">方 腾飞</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26388">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link">JackWang</span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26387">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link">JackWang</span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26386">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://www.jamespan.me/blog/" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://www.jamespan.me/blog/&#39;); return false;">JamesPan</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26385">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://www.jamespan.me/blog/" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://www.jamespan.me/blog/&#39;); return false;">JamesPan</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26384">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://www.jamespan.me/blog/" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://www.jamespan.me/blog/&#39;); return false;">JamesPan</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26383">《Groovy官方指南》翻译邀请</a>》</li></ul></div>
+<div class="side_box widget_tag_cloud" id="tag_cloud-4">
+<h3 class="side_title">标签</h3>
+<div class="tagcloud"><a href="http://ifeve.com/tag/actor/" class="tag-link-226" title="17个话题" style="font-size: 13.572815533981pt;">actor</a>
+<a href="http://ifeve.com/tag/basic/" class="tag-link-213" title="14个话题" style="font-size: 12.485436893204pt;">Basic</a>
+<a href="http://ifeve.com/tag/book/" class="tag-link-243" title="7个话题" style="font-size: 8.6796116504854pt;">book</a>
+<a href="http://ifeve.com/tag/cacheline/" class="tag-link-77" title="6个话题" style="font-size: 8pt;">cacheline</a>
+<a href="http://ifeve.com/tag/classes/" class="tag-link-251" title="8个话题" style="font-size: 9.3592233009709pt;">classes</a>
+<a href="http://ifeve.com/tag/collections/" class="tag-link-260" title="11个话题" style="font-size: 11.126213592233pt;">collections</a>
+<a href="http://ifeve.com/tag/concurrency/" class="tag-link-111" title="66个话题" style="font-size: 21.320388349515pt;">concurrency</a>
+<a href="http://ifeve.com/tag/concurrent/" class="tag-link-214" title="11个话题" style="font-size: 11.126213592233pt;">Concurrent</a>
+<a href="http://ifeve.com/tag/concurrent-data-structure/" class="tag-link-322" title="13个话题" style="font-size: 12.077669902913pt;">concurrent data structure</a>
+<a href="http://ifeve.com/tag/concurrenthashmap/" class="tag-link-61" title="6个话题" style="font-size: 8pt;">ConcurrentHashMap</a>
+<a href="http://ifeve.com/tag/customizing/" class="tag-link-250" title="8个话题" style="font-size: 9.3592233009709pt;">Customizing</a>
+<a href="http://ifeve.com/tag/date/" class="tag-link-505" title="7个话题" style="font-size: 8.6796116504854pt;">date</a>
+<a href="http://ifeve.com/tag/executor/" class="tag-link-177" title="20个话题" style="font-size: 14.388349514563pt;">Executor</a>
+<a href="http://ifeve.com/tag/executor-framework/" class="tag-link-231" title="17个话题" style="font-size: 13.572815533981pt;">Executor framework</a>
+<a href="http://ifeve.com/tag/false-sharing/" class="tag-link-119" title="7个话题" style="font-size: 8.6796116504854pt;">False Sharing</a>
+<a href="http://ifeve.com/tag/faq/" class="tag-link-39" title="13个话题" style="font-size: 12.077669902913pt;">faq</a>
+<a href="http://ifeve.com/tag/fork/" class="tag-link-232" title="11个话题" style="font-size: 11.126213592233pt;">fork</a>
+<a href="http://ifeve.com/tag/forkjoin/" class="tag-link-224" title="9个话题" style="font-size: 10.038834951456pt;">Fork/Join</a>
+<a href="http://ifeve.com/tag/fork-join/" class="tag-link-53" title="8个话题" style="font-size: 9.3592233009709pt;">fork join</a>
+<a href="http://ifeve.com/tag/framework/" class="tag-link-73" title="22个话题" style="font-size: 14.932038834951pt;">Framework</a>
+<a href="http://ifeve.com/tag/functional-programming/" class="tag-link-460" title="9个话题" style="font-size: 10.038834951456pt;">Functional Programming</a>
+<a href="http://ifeve.com/tag/guava/" class="tag-link-309" title="14个话题" style="font-size: 12.485436893204pt;">Guava</a>
+<a href="http://ifeve.com/tag/io/" class="tag-link-129" title="26个话题" style="font-size: 15.883495145631pt;">IO</a>
+<a href="http://ifeve.com/tag/java/" class="tag-link-69" title="74个话题" style="font-size: 22pt;">JAVA</a>
+<a href="http://ifeve.com/tag/java8/" class="tag-link-342" title="10个话题" style="font-size: 10.582524271845pt;">java8</a>
+<a href="http://ifeve.com/tag/jmm/" class="tag-link-31" title="31个话题" style="font-size: 16.970873786408pt;">jmm</a>
+<a href="http://ifeve.com/tag/join/" class="tag-link-233" title="11个话题" style="font-size: 11.126213592233pt;">join</a>
+<a href="http://ifeve.com/tag/jvm/" class="tag-link-127" title="16个话题" style="font-size: 13.165048543689pt;">JVM</a>
+<a href="http://ifeve.com/tag/lock/" class="tag-link-17" title="23个话题" style="font-size: 15.203883495146pt;">lock</a>
+<a href="http://ifeve.com/tag/memory-barriers/" class="tag-link-75" title="10个话题" style="font-size: 10.582524271845pt;">Memory Barriers</a>
+<a href="http://ifeve.com/tag/netty/" class="tag-link-280" title="16个话题" style="font-size: 13.165048543689pt;">Netty</a>
+<a href="http://ifeve.com/tag/nio/" class="tag-link-131" title="14个话题" style="font-size: 12.485436893204pt;">NIO</a>
+<a href="http://ifeve.com/tag/oauth-2-0/" class="tag-link-380" title="8个话题" style="font-size: 9.3592233009709pt;">OAuth 2.0</a>
+<a href="http://ifeve.com/tag/pattern-matching/" class="tag-link-167" title="8个话题" style="font-size: 9.3592233009709pt;">pattern-matching</a>
+<a href="http://ifeve.com/tag/ringbuffer/" class="tag-link-91" title="7个话题" style="font-size: 8.6796116504854pt;">RingBuffer</a>
+<a href="http://ifeve.com/tag/scala/" class="tag-link-166" title="22个话题" style="font-size: 14.932038834951pt;">Scala</a>
+<a href="http://ifeve.com/tag/stm/" class="tag-link-199" title="12个话题" style="font-size: 11.533980582524pt;">stm</a>
+<a href="http://ifeve.com/tag/storm/" class="tag-link-351" title="39个话题" style="font-size: 18.194174757282pt;">Storm</a>
+<a href="http://ifeve.com/tag/synchronization/" class="tag-link-216" title="15个话题" style="font-size: 12.757281553398pt;">synchronization</a>
+<a href="http://ifeve.com/tag/synchronized/" class="tag-link-15" title="10个话题" style="font-size: 10.582524271845pt;">Synchronized</a>
+<a href="http://ifeve.com/tag/thread/" class="tag-link-11" title="41个话题" style="font-size: 18.466019417476pt;">thread</a>
+<a href="http://ifeve.com/tag/time/" class="tag-link-506" title="7个话题" style="font-size: 8.6796116504854pt;">time</a>
+<a href="http://ifeve.com/tag/tomcat/" class="tag-link-347" title="8个话题" style="font-size: 9.3592233009709pt;">tomcat</a>
+<a href="http://ifeve.com/tag/volatile/" class="tag-link-25" title="11个话题" style="font-size: 11.126213592233pt;">volatile</a>
+<a href="http://ifeve.com/tag/%e5%a4%9a%e7%ba%bf%e7%a8%8b/" class="tag-link-197" title="8个话题" style="font-size: 9.3592233009709pt;">多线程</a></div>
+</div>
+<div class="side_box widget_text" id="text-9">
+			<div class="textwidget"><script async="" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/adsbygoogle.js"></script>
+<ins class="adsbygoogle" style="display:inline-block;width:336px;height:280px" data-ad-client="ca-pub-9394337417063147" data-ad-slot="6198104715" data-adsbygoogle-status="done"><ins id="aswift_3_expand" style="display:inline-table;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><ins id="aswift_3_anchor" style="display:block;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><iframe width="336" height="280" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" allowfullscreen="true" onload="var i=this.id,s=window.google_iframe_oncopy,H=s&amp;&amp;s.handlers,h=H&amp;&amp;H[i],w=this.contentWindow,d;try{d=w.document}catch(e){}if(h&amp;&amp;d&amp;&amp;(!d.body||!d.body.firstChild)){if(h.call){setTimeout(h,0)}else if(h.match){try{h=s.upd(h,i)}catch(e){}w.location.replace(h)}}" id="aswift_3" name="aswift_3" style="left:0;position:absolute;top:0;"></iframe></ins></ins></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+
+</div>
+		</div>
+</div>
+<div id="side_middle" class="clearfix">
+ <div id="side_left">
+  <div class="side_box_short widget_archive" id="archives-2">
+<h3 class="side_title">文章归档</h3>
+		<ul>
+	<li><a href="http://ifeve.com/2015/10/">2015年十月</a>&nbsp;(8)</li>
+	<li><a href="http://ifeve.com/2015/09/">2015年九月</a>&nbsp;(29)</li>
+	<li><a href="http://ifeve.com/2015/08/">2015年八月</a>&nbsp;(44)</li>
+	<li><a href="http://ifeve.com/2015/07/">2015年七月</a>&nbsp;(20)</li>
+	<li><a href="http://ifeve.com/2015/06/">2015年六月</a>&nbsp;(21)</li>
+	<li><a href="http://ifeve.com/2015/05/">2015年五月</a>&nbsp;(15)</li>
+	<li><a href="http://ifeve.com/2015/04/">2015年四月</a>&nbsp;(27)</li>
+	<li><a href="http://ifeve.com/2015/03/">2015年三月</a>&nbsp;(13)</li>
+	<li><a href="http://ifeve.com/2015/02/">2015年二月</a>&nbsp;(11)</li>
+	<li><a href="http://ifeve.com/2015/01/">2015年一月</a>&nbsp;(13)</li>
+	<li><a href="http://ifeve.com/2014/12/">2014年十二月</a>&nbsp;(26)</li>
+	<li><a href="http://ifeve.com/2014/11/">2014年十一月</a>&nbsp;(61)</li>
+	<li><a href="http://ifeve.com/2014/10/">2014年十月</a>&nbsp;(33)</li>
+	<li><a href="http://ifeve.com/2014/09/">2014年九月</a>&nbsp;(47)</li>
+	<li><a href="http://ifeve.com/2014/08/">2014年八月</a>&nbsp;(27)</li>
+	<li><a href="http://ifeve.com/2014/07/">2014年七月</a>&nbsp;(13)</li>
+	<li><a href="http://ifeve.com/2014/06/">2014年六月</a>&nbsp;(32)</li>
+	<li><a href="http://ifeve.com/2014/05/">2014年五月</a>&nbsp;(45)</li>
+	<li><a href="http://ifeve.com/2014/04/">2014年四月</a>&nbsp;(41)</li>
+	<li><a href="http://ifeve.com/2014/03/">2014年三月</a>&nbsp;(34)</li>
+	<li><a href="http://ifeve.com/2014/02/">2014年二月</a>&nbsp;(38)</li>
+	<li><a href="http://ifeve.com/2014/01/">2014年一月</a>&nbsp;(19)</li>
+	<li><a href="http://ifeve.com/2013/12/">2013年十二月</a>&nbsp;(10)</li>
+	<li><a href="http://ifeve.com/2013/11/">2013年十一月</a>&nbsp;(5)</li>
+	<li><a href="http://ifeve.com/2013/10/">2013年十月</a>&nbsp;(20)</li>
+	<li><a href="http://ifeve.com/2013/09/">2013年九月</a>&nbsp;(38)</li>
+	<li><a href="http://ifeve.com/2013/08/">2013年八月</a>&nbsp;(48)</li>
+	<li><a href="http://ifeve.com/2013/07/">2013年七月</a>&nbsp;(26)</li>
+	<li><a href="http://ifeve.com/2013/06/">2013年六月</a>&nbsp;(16)</li>
+	<li><a href="http://ifeve.com/2013/05/">2013年五月</a>&nbsp;(9)</li>
+	<li><a href="http://ifeve.com/2013/04/">2013年四月</a>&nbsp;(17)</li>
+	<li><a href="http://ifeve.com/2013/03/">2013年三月</a>&nbsp;(41)</li>
+	<li><a href="http://ifeve.com/2013/02/">2013年二月</a>&nbsp;(25)</li>
+	<li><a href="http://ifeve.com/2013/01/">2013年一月</a>&nbsp;(57)</li>
+	<li><a href="http://ifeve.com/2012/12/">2012年十二月</a>&nbsp;(9)</li>
+	<li><a href="http://ifeve.com/2012/10/">2012年十月</a>&nbsp;(1)</li>
+	<li><a href="http://ifeve.com/2012/08/">2012年八月</a>&nbsp;(1)</li>
+		</ul>
+</div>
+ </div>
+ <div id="side_right">
+  <div class="side_box_short widget_links" id="linkcat-2">
+<h3 class="side_title">友情链接</h3>
+
+	<ul class="xoxo blogroll">
+<li><a href="http://coolshell.cn/" rel="co-worker" onclick="javascript:window.open(&#39;http://coolshell.cn/&#39;); return false;">coolshell</a></li>
+<li><a href="http://blog.91gaoqing.com/" onclick="javascript:window.open(&#39;http://blog.91gaoqing.com/&#39;); return false;">Programer. 大猫</a></li>
+<li><a href="http://hugozhu.myalert.info/" rel="co-worker" onclick="javascript:window.open(&#39;http://hugozhu.myalert.info/&#39;); return false;">一粟的博客</a></li>
+<li><a href="http://bj.liepin.com/" onclick="javascript:window.open(&#39;http://bj.liepin.com/&#39;); return false;">北京猎聘网</a></li>
+<li><a href="http://blog.csdn.net/cutesource/" rel="acquaintance co-worker" onclick="javascript:window.open(&#39;http://blog.csdn.net/cutesource/&#39;); return false;">志俊的博客</a></li>
+<li><a href="http://www.zuidaima.com/" onclick="javascript:window.open(&#39;http://www.zuidaima.com/&#39;); return false;">最代码</a></li>
+<li><a href="http://diandianzhe.com/" onclick="javascript:window.open(&#39;http://diandianzhe.com/&#39;); return false;">点点折</a></li>
+<li><a href="http://www.liuinsect.com/" onclick="javascript:window.open(&#39;http://www.liuinsect.com/&#39;); return false;">码梦为生</a></li>
+<li><a href="http://namiao.org/" rel="acquaintance co-worker" onclick="javascript:window.open(&#39;http://namiao.org/&#39;); return false;">纳秒</a></li>
+<li><a href="http://www.656463.com/" onclick="javascript:window.open(&#39;http://www.656463.com/&#39;); return false;">领悟书生</a></li>
+
+	</ul>
+</div>
+
+<div class="side_box_short widget_categories" id="categories-2">
+<h3 class="side_title">分类目录</h3>
+		<ul>
+	<li class="cat-item cat-item-387"><a href="http://ifeve.com/category/framework/akka/">akka</a> (18)
+</li>
+	<li class="cat-item cat-item-415"><a href="http://ifeve.com/category/android/">Android</a> (3)
+</li>
+	<li class="cat-item cat-item-289"><a href="http://ifeve.com/category/c/">C++</a> (11)
+</li>
+	<li class="cat-item cat-item-366"><a href="http://ifeve.com/category/cpu-2/">CPU</a> (2)
+</li>
+	<li class="cat-item cat-item-73"><a href="http://ifeve.com/category/framework/">Framework</a> (45)
+</li>
+	<li class="cat-item cat-item-458"><a href="http://ifeve.com/category/go/">GO</a> (6)
+</li>
+	<li class="cat-item cat-item-617"><a href="http://ifeve.com/category/groovy/">groovy</a> (6)
+</li>
+	<li class="cat-item cat-item-310"><a href="http://ifeve.com/category/guava-2/">guava</a> (22)
+</li>
+	<li class="cat-item cat-item-69"><a href="http://ifeve.com/category/java/">JAVA</a> (372)
+</li>
+	<li class="cat-item cat-item-127"><a href="http://ifeve.com/category/jvm/">JVM</a> (34)
+</li>
+	<li class="cat-item cat-item-300"><a href="http://ifeve.com/category/linux/">linux</a> (7)
+</li>
+	<li class="cat-item cat-item-280"><a href="http://ifeve.com/category/netty/">Netty</a> (22)
+</li>
+	<li class="cat-item cat-item-166"><a href="http://ifeve.com/category/scala/">Scala</a> (9)
+</li>
+	<li class="cat-item cat-item-388"><a href="http://ifeve.com/category/storm/">storm</a> (42)
+</li>
+	<li class="cat-item cat-item-620"><a href="http://ifeve.com/category/thinking/">thinking</a> (1)
+</li>
+	<li class="cat-item cat-item-485"><a href="http://ifeve.com/category/velocity/">Velocity</a> (6)
+</li>
+	<li class="cat-item cat-item-279"><a href="http://ifeve.com/category/web/">Web</a> (13)
+</li>
+	<li class="cat-item cat-item-148"><a href="http://ifeve.com/category/notice/">公告</a> (5)
+</li>
+	<li class="cat-item cat-item-378"><a href="http://ifeve.com/category/bigdata/">大数据</a> (22)
+</li>
+	<li class="cat-item cat-item-138"><a href="http://ifeve.com/category/%e5%a5%bd%e6%96%87%e6%8e%a8%e8%8d%90/">好文推荐</a> (26)
+</li>
+	<li class="cat-item cat-item-244"><a href="http://ifeve.com/category/%e5%b9%b6%e5%8f%91%e4%b9%a6%e7%b1%8d/">并发书籍</a> (95)
+</li>
+	<li class="cat-item cat-item-29"><a href="http://ifeve.com/category/concurrency-translation/" title="发布国外并发编程相关文献译文。">并发译文</a> (359)
+</li>
+	<li class="cat-item cat-item-7"><a href="http://ifeve.com/category/ask/" title="可以在这里发表并发编程的问题。如何发表？用QQ登陆，然后点击“新建文章”，管理员审核后就可以发表。">技术问答</a> (11)
+</li>
+	<li class="cat-item cat-item-147"><a href="http://ifeve.com/category/%e6%95%8f%e6%8d%b7%e7%ae%a1%e7%90%86/">敏捷管理</a> (5)
+</li>
+	<li class="cat-item cat-item-1"><a href="http://ifeve.com/category/talk-concurrent/">本站原创</a> (72)
+</li>
+	<li class="cat-item cat-item-367"><a href="http://ifeve.com/category/%e6%9e%b6%e6%9e%84/">架构</a> (19)
+</li>
+	<li class="cat-item cat-item-305"><a href="http://ifeve.com/category/%e6%b4%bb%e5%8a%a8/">活动</a> (7)
+</li>
+	<li class="cat-item cat-item-414"><a href="http://ifeve.com/category/%e7%bd%91%e7%bb%9c/">网络</a> (3)
+</li>
+		</ul>
+</div>
+ </div>
+</div>
+<div id="side_bottom">
+ <div class="side_box widget_text" id="text-15">
+			<div class="textwidget"><script async="" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/adsbygoogle.js"></script>
+<!-- 摩天大楼 -->
+<ins class="adsbygoogle" style="display:inline-block;width:300px;height:600px" data-ad-client="ca-pub-9394337417063147" data-ad-slot="6358703113" data-adsbygoogle-status="done"><ins id="aswift_4_expand" style="display:inline-table;border:none;height:600px;margin:0;padding:0;position:relative;visibility:visible;width:300px;background-color:transparent"><ins id="aswift_4_anchor" style="display:block;border:none;height:600px;margin:0;padding:0;position:relative;visibility:visible;width:300px;background-color:transparent"><iframe width="300" height="600" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" allowfullscreen="true" onload="var i=this.id,s=window.google_iframe_oncopy,H=s&amp;&amp;s.handlers,h=H&amp;&amp;H[i],w=this.contentWindow,d;try{d=w.document}catch(e){}if(h&amp;&amp;d&amp;&amp;(!d.body||!d.body.firstChild)){if(h.call){setTimeout(h,0)}else if(h.match){try{h=s.upd(h,i)}catch(e){}w.location.replace(h)}}" id="aswift_4" name="aswift_4" style="left:0;position:absolute;top:0;"></iframe></ins></ins></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+<!-- CNZZ -->
+<script src="./聊聊并发（二）Java SE1.6中的Synchronized_files/stat.php" language="JavaScript"></script><script src="./聊聊并发（二）Java SE1.6中的Synchronized_files/core.php" charset="utf-8" type="text/javascript"></script><a href="http://www.cnzz.com/stat/website.php?web_id=5003572" title="站长统计" onclick="javascript:window.open(&#39;http://www.cnzz.com/stat/website.php?web_id=5003572&#39;); return false;"><img border="0" hspace="0" vspace="0" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/pic.gif"></a>
+
+感谢<a href="https://www.upyun.com/index.html" onclick="javascript:window.open(&#39;https://www.upyun.com/index.html&#39;); return false;">又拍云</a>为本站提供服务器和图片服务。</div>
+		</div>
+</div>
+
+  </div>
+  
+  <div id="footer">
+
+<ul id="copyright">
+    <li>版权所有 ©&nbsp; <a href="http://ifeve.com/">并发编程网 – ifeve.com</a></li>
+    <li>ICP号: <a href="http://www.miibeian.gov.cn/" onclick="javascript:window.open(&#39;http://www.miibeian.gov.cn/&#39;); return false;">浙ICP备12046809号</a></li>
+<li class="last"><script type="text/javascript" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/tongji.js"></script><img src="./聊聊并发（二）Java SE1.6中的Synchronized_files/tongji.do" border="0" width="1" height="1"><a href="http://tongji.linezing.com/report.html?unit_id=3067707" onclick="javascript:window.open(&#39;http://tongji.linezing.com/report.html?unit_id=3067707&#39;); return false;">量子统计</a><noscript>&lt;a href="http://www.linezing.com"&gt;&lt;img src="http://img.tongji.linezing.com/3067707/tongji.gif"/&gt;&lt;/a&gt;</noscript></li>
+   </ul>
+ </div>
+ </div><!-- END #main_content -->
+
+  <p id="return_top"><a href="http://ifeve.com/java-synchronized/#header">return top</a></p>
+ 
+<link rel="stylesheet" id="yarppRelatedCss-css" href="./聊聊并发（二）Java SE1.6中的Synchronized_files/related.css" type="text/css" media="all">
+<script type="text/javascript" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/comment-reply.min.js"></script>
+<script type="text/javascript">
+/* <![CDATA[ */
+var ratingsL10n = {"plugin_url":"http:\/\/ifeve.com\/wp-content\/plugins\/wp-postratings","ajax_url":"http:\/\/ifeve.com\/wp-admin\/admin-ajax.php","text_wait":"Please rate only 1 post at a time.","image":"stars_crystal","image_ext":"gif","max":"5","show_loading":"1","show_fading":"1","custom":"0"};
+var ratings_mouseover_image=new Image();ratings_mouseover_image.src=ratingsL10n.plugin_url+"/images/"+ratingsL10n.image+"/rating_over."+ratingsL10n.image_ext;;
+/* ]]> */
+</script>
+<script type="text/javascript" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/postratings-js.js"></script>
+<script type="text/javascript">
+/* <![CDATA[ */
+var viewsCacheL10n = {"admin_ajax_url":"http:\/\/ifeve.com\/wp-admin\/admin-ajax.php","post_id":"21"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="./聊聊并发（二）Java SE1.6中的Synchronized_files/postviews-cache.js"></script>
+
+
+
+<script src="./聊聊并发（二）Java SE1.6中的Synchronized_files/jquery.min.js"></script>
+
+<script src="./聊聊并发（二）Java SE1.6中的Synchronized_files/jquery.bpopup-0.8.0.min.js"></script>
+
+
+<!--
+<script type="text/javascript">
+
+;(function($) {
+
+    $(function() {
+
+        var url=document.referrer;
+
+        if ( url && url.search("http://")>-1) {
+
+            var refurl =  url.match(/:\/\/(.[^/]+)/)[1];
+
+            if(refurl.indexOf("baidu.com")>-1){
+
+                $('#nobaidu_dlg').bPopup();
+
+            }
+
+        }
+
+    });
+
+
+
+})(jQuery);
+
+</script>
+
+
+
+
+<div id="nobaidu_dlg" style="background-color:#fff; border-radius:15px;color:#000;display:none;padding:20px;min-width:450px;min-height:180px;">
+
+    <span class="bClose" style="cursor:pointer; position:absolute; right:10px;top:5px;">x<span/>
+
+    <img src="http://coolshell.cn//wp-content/themes/inove/img/nobaidu.jpg" align="left">
+
+     <p style="margin-left:200px;margin-top: 20px; line-height: 30px;">
+
+     检测到你还在使用百度这个搜索引擎，<br/>
+
+     做为一个程序员，这是一种自暴自弃！<br/>
+
+     <br/>
+
+     </p>
+
+     <p align="center" style="margin-top:20px;">
+
+     <b><a href="http://coolshell.cn/articles/7186.html">作环保的程序员，从不用百度开始！</a></b>
+
+     </p>
+
+</div>
+-->
+
+<!-- Dynamic page generated in 1.381 seconds. -->
+<!-- Cached page generated by WP-Super-Cache on 2015-10-08 09:06:11 -->
+</body></html>

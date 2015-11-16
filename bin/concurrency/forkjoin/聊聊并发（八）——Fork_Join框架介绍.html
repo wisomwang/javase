@@ -1,0 +1,1065 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<!-- saved from url=(0043)http://ifeve.com/talk-concurrency-forkjoin/ -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head profile="http://gmpg.org/xfn/11"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><script async="" type="text/javascript" src="./聊聊并发（八）——Fork_Join框架介绍_files/ca-pub-9394337417063147.js"></script><script src="./聊聊并发（八）——Fork_Join框架介绍_files/id.php" charset="utf-8"></script><script src="./聊聊并发（八）——Fork_Join框架介绍_files/shares.php" charset="utf-8"></script>
+
+
+<title>聊聊并发（八）——Fork/Join框架介绍 | 并发编程网 - ifeve.com</title>
+<meta name="description" content="让天下没有难学的技术">
+
+<link rel="alternate" type="application/rss+xml" title="并发编程网 – ifeve.com RSS Feed" href="http://ifeve.com/feed/">
+<link rel="alternate" type="application/atom+xml" title="并发编程网 – ifeve.com Atom Feed" href="http://ifeve.com/feed/atom/"> 
+<link rel="pingback" href="http://ifeve.com/xmlrpc.php">
+
+<link rel="stylesheet" href="./聊聊并发（八）——Fork_Join框架介绍_files/style.css" type="text/css">
+<link rel="stylesheet" href="./聊聊并发（八）——Fork_Join框架介绍_files/comment-style.css" type="text/css">
+
+ 
+
+<!-- All in One SEO Pack 2.2.7.1 by Michael Torbert of Semper Fi Web Design[258,313] -->
+<meta name="description" itemprop="description" content="本文首发于InfoQ 1. 什么是Fork/Join框架 Fork/Join框架是Java7提供了的一个用于并行执行任务的框架，">
+
+<meta name="keywords" itemprop="keywords" content="fork join">
+
+<link rel="canonical" href="./聊聊并发（八）——Fork_Join框架介绍_files/聊聊并发（八）——Fork_Join框架介绍.html">
+<!-- /all in one seo pack -->
+<link rel="alternate" type="application/rss+xml" title="并发编程网 - ifeve.com » 聊聊并发（八）——Fork/Join框架介绍评论Feed" href="http://ifeve.com/talk-concurrency-forkjoin/feed/">
+		<script type="text/javascript">
+			window._wpemojiSettings = {"baseUrl":"http:\/\/s.w.org\/images\/core\/emoji\/72x72\/","ext":".png","source":{"concatemoji":"http:\/\/ifeve.com\/wp-includes\/js\/wp-emoji-release.min.js?ver=4.2.5"}};
+			!function(a,b,c){function d(a){var c=b.createElement("canvas"),d=c.getContext&&c.getContext("2d");return d&&d.fillText?(d.textBaseline="top",d.font="600 32px Arial","flag"===a?(d.fillText(String.fromCharCode(55356,56812,55356,56807),0,0),c.toDataURL().length>3e3):(d.fillText(String.fromCharCode(55357,56835),0,0),0!==d.getImageData(16,16,1,1).data[0])):!1}function e(a){var c=b.createElement("script");c.src=a,c.type="text/javascript",b.getElementsByTagName("head")[0].appendChild(c)}var f,g;c.supports={simple:d("simple"),flag:d("flag")},c.DOMReady=!1,c.readyCallback=function(){c.DOMReady=!0},c.supports.simple&&c.supports.flag||(g=function(){c.readyCallback()},b.addEventListener?(b.addEventListener("DOMContentLoaded",g,!1),a.addEventListener("load",g,!1)):(a.attachEvent("onload",g),b.attachEvent("onreadystatechange",function(){"complete"===b.readyState&&c.readyCallback()})),f=c.source||{},f.concatemoji?e(f.concatemoji):f.wpemoji&&f.twemoji&&(e(f.twemoji),e(f.wpemoji)))}(window,document,window._wpemojiSettings);
+		</script><script src="./聊聊并发（八）——Fork_Join框架介绍_files/wp-emoji-release.min.js" type="text/javascript"></script>
+		<style type="text/css">
+img.wp-smiley,
+img.emoji {
+	display: inline !important;
+	border: none !important;
+	box-shadow: none !important;
+	height: 1em !important;
+	width: 1em !important;
+	margin: 0 .07em !important;
+	vertical-align: -0.1em !important;
+	background: none !important;
+	padding: 0 !important;
+}
+</style>
+<link rel="stylesheet" id="yarppWidgetCss-css" href="./聊聊并发（八）——Fork_Join框架介绍_files/widget.css" type="text/css" media="all">
+<link rel="stylesheet" id="dwqa-style-css" href="./聊聊并发（八）——Fork_Join框架介绍_files/style(1).css" type="text/css" media="all">
+<link rel="stylesheet" id="wp-postratings-css" href="./聊聊并发（八）——Fork_Join框架介绍_files/postratings-css.css" type="text/css" media="all">
+<link rel="stylesheet" id="display-authors-widget-styles-css" href="./聊聊并发（八）——Fork_Join框架介绍_files/display-authors-widget.css" type="text/css" media="all">
+<script type="text/javascript" src="./聊聊并发（八）——Fork_Join框架介绍_files/jquery.js"></script>
+<script type="text/javascript" src="./聊聊并发（八）——Fork_Join框架介绍_files/jquery-migrate.min.js"></script>
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://ifeve.com/xmlrpc.php?rsd">
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://ifeve.com/wp-includes/wlwmanifest.xml"> 
+<link rel="prev" title="ReentrantLock(重入锁)以及公平性" href="http://ifeve.com/reentrantlock-and-fairness/">
+<link rel="next" title="测试并发应用(六）用 FindBugs 分析并发代码" href="http://ifeve.com/testing-concurrent-applications-7/">
+<meta name="generator" content="WordPress 4.2.5">
+<link rel="shortlink" href="http://ifeve.com/?p=8436">
+
+
+<!-- Plugin: Open external links a new window. Plugin by Kristian Risager Larsen, http://kristianrisagerlarsen.dk . Download it at http://wordpress.org/extend/plugins/open-external-links-in-a-new-window/ -->
+<script type="text/javascript">//<![CDATA[
+	function external_links_in_new_windows_loop() {
+		if (!document.links) {
+			document.links = document.getElementsByTagName('a');
+		}
+		var change_link = false;
+		var force = '';
+		var ignore = '';
+
+		for (var t=0; t<document.links.length; t++) {
+			var all_links = document.links[t];
+			change_link = false;
+			
+			if(document.links[t].hasAttribute('onClick') == false) {
+				// forced if the address starts with http (or also https), but does not link to the current domain
+				if(all_links.href.search(/^http/) != -1 && all_links.href.search('ifeve.com') == -1) {
+					// alert('Changeda '+all_links.href);
+					change_link = true;
+				}
+					
+				if(force != '' && all_links.href.search(force) != -1) {
+					// forced
+					// alert('force '+all_links.href);
+					change_link = true;
+				}
+				
+				if(ignore != '' && all_links.href.search(ignore) != -1) {
+					// alert('ignore '+all_links.href);
+					// ignored
+					change_link = false;
+				}
+
+				if(change_link == true) {
+					// alert('Changed '+all_links.href);
+					document.links[t].setAttribute('onClick', 'javascript:window.open(\''+all_links.href+'\'); return false;');
+					document.links[t].removeAttribute('target');
+				}
+			}
+		}
+	}
+	
+	// Load
+	function external_links_in_new_windows_load(func)
+	{	
+		var oldonload = window.onload;
+		if (typeof window.onload != 'function'){
+			window.onload = func;
+		} else {
+			window.onload = function(){
+				oldonload();
+				func();
+			}
+		}
+	}
+
+	external_links_in_new_windows_load(external_links_in_new_windows_loop);
+	//]]></script>
+
+
+<!-- StarBox - the Author Box for Humans 3.0.3, visit: http://wordpress.org/plugins/starbox/ -->
+<!-- /StarBox - the Author Box for Humans -->
+
+<link rel="stylesheet" id="frontend.css-css" href="./聊聊并发（八）——Fork_Join框架介绍_files/frontend.css" type="text/css" media="all">
+<script type="text/javascript" src="./聊聊并发（八）——Fork_Join框架介绍_files/frontend.js"></script>
+<link rel="stylesheet" id="hidedefault.css-css" href="./聊聊并发（八）——Fork_Join框架介绍_files/hidedefault.css" type="text/css" media="all">
+<style type="text/css" media="screen">#wp-admin-bar-user-info .avatar-64 {width:64px}</style>
+	<style type="text/css">.recentcomments a{display:inline !important;padding:0 !important;margin:0 !important;}</style>
+<link rel="stylesheet" type="text/css" href="./聊聊并发（八）——Fork_Join框架介绍_files/shCore.css"><link rel="stylesheet" type="text/css" href="./聊聊并发（八）——Fork_Join框架介绍_files/shThemeEclipse.css"><style type="text/css" id="syntaxhighlighteranchor"></style>
+
+<script type="text/javascript" src="./聊聊并发（八）——Fork_Join框架介绍_files/jscript.js"></script>
+<script type="text/javascript" src="./聊聊并发（八）——Fork_Join框架介绍_files/comment.js"></script>
+<script type="text/javascript" src="./聊聊并发（八）——Fork_Join框架介绍_files/rollover.js"></script>
+
+<!--[if IE 7]>
+<link rel="stylesheet" href="http://ifeve.com/wp-content/themes/flat/ie7.css" type="text/css" />
+<![endif]-->
+<!--[if IE 8]>
+<link rel="stylesheet" href="http://ifeve.com/wp-content/themes/flat/ie8.css" type="text/css" />
+<![endif]-->
+
+
+<style type="text/css">
+a, .post .title a:hover, .post_meta a:hover, #bread_crumb ul li a:hover, #previous_post a:hover, #next_post a:hover, .post a.more-link:hover, #right_col li a:hover, #copyright li a:hover, #archive_headline #keyword,
+   #comments_wrapper a:hover, #comment_header_right .comment_switch_active a, #comment_header_right .comment_switch_active a:hover, #comment_pager .current
+   { color:#00A19E; }
+
+#no_post a.back:hover, #wp-calendar td a:hover, #wp-calendar #prev a:hover, #wp-calendar #next a:hover, .page_navi a:hover, #submit_comment:hover
+ { background-color:#00A19E; }
+
+#guest_info input:focus, #comment_textarea textarea:focus
+ { border:1px solid #00A19E; }
+
+a:hover
+ { color:#BDC900; }
+
+body { font-size:14px; }
+
+#header { background:url(http://ifeve.com/wp-content/uploads/flat/bg.png) left top; }
+.logo_text a { color:#F5F5F5; }
+#site_description {  border-top:1px solid #BBBBBB; color:#D2D9CC; }
+
+
+</style>
+
+</head>
+
+<body style="zoom: 1;"><div id="BAIDU_DUP_fp_wrapper" style="position: absolute; left: -1px; bottom: -1px; z-index: 0; width: 0px; height: 0px; overflow: hidden; visibility: hidden; display: none;"><iframe id="BAIDU_DUP_fp_iframe" src="./聊聊并发（八）——Fork_Join框架介绍_files/o.html" style="width: 0px; height: 0px; visibility: hidden; display: none;"></iframe></div><link href="./聊聊并发（八）——Fork_Join框架介绍_files/jiathis_counter.css" rel="stylesheet" type="text/css"><link href="./聊聊并发（八）——Fork_Join框架介绍_files/jiathis_share.css" rel="stylesheet" type="text/css"><iframe frameborder="0" style="position: absolute; display: none; opacity: 0;"></iframe><div class="jiathis_style" style="position: absolute; z-index: 1000000000; display: none; top: 50%; left: 50%; overflow: auto;"></div><div class="jiathis_style" style="position: absolute; z-index: 1000000000; display: none; overflow: auto;"></div><iframe frameborder="0" src="./聊聊并发（八）——Fork_Join框架介绍_files/jiathis_utility.html" style="display: none;"></iframe>
+
+ <div id="header">
+  <div class="header_menu">
+    <ul id="menu-%e4%b8%bb%e8%8f%9c%e5%8d%95" class="menu"><li id="menu-item-16594" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-16594"><a href="http://ifeve.com/">首页</a></li>
+<li id="menu-item-3432" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-3432"><a href="http://ifeve.com/wp-login.php">登录</a></li>
+<li id="menu-item-17079" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-17079"><a href="http://ifeve.com/questions/">面试题</a></li>
+<li id="menu-item-9219" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-has-children menu-item-9219 parent_menu"><a href="http://ifeve.com/category/java/">JAVA</a>
+<ul class="sub-menu">
+	<li id="menu-item-16108" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-16108"><a href="http://ifeve.com/java-io/">Java IO 教程</a></li>
+	<li id="menu-item-5283" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5283"><a href="http://ifeve.com/java-nio-all/">Java NIO 教程</a></li>
+	<li id="menu-item-17514" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-17514"><a href="http://ifeve.com/java-reflection/">JAVA Reflection教程</a></li>
+	<li id="menu-item-16239" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-16239"><a href="http://ifeve.com/java-network">Java 网络教程</a></li>
+	<li id="menu-item-4416" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4416"><a href="http://ifeve.com/java-concurrency-thread-directory/">Java并发和多线程</a></li>
+	<li id="menu-item-2767" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2767"><a href="http://ifeve.com/jmm-cookbook/">Java内存模型指南</a></li>
+	<li id="menu-item-2747" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2747"><a href="http://ifeve.com/jmm-faq/">Java内存模型FAQ</a></li>
+	<li id="menu-item-2765" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2765"><a href="http://ifeve.com/syn-jmm/">同步与Java内存模型</a></li>
+	<li id="menu-item-5789" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5789"><a href="http://ifeve.com/oracle-java-concurrency-tutorial/">Oracle官方并发教程</a></li>
+	<li id="menu-item-15316" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-15316"><a href="http://ifeve.com/jvm-optimize/">JVM性能优化系列</a></li>
+	<li id="menu-item-15313" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-15313"><a href="http://ifeve.com/useful-jvm-flags/">JVM实用参数系列</a></li>
+</ul>
+</li>
+<li id="menu-item-7938" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-7938"><a href="http://ifeve.com/category/c/">C++</a></li>
+<li id="menu-item-9220" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-9220 parent_menu"><a href="http://ifeve.com/category/framework/">Framework</a>
+<ul class="sub-menu">
+	<li id="menu-item-12798" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-12798"><a href="http://ifeve.com/disruptor/">Disruptor 框架指南</a></li>
+	<li id="menu-item-12783" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-12783"><a title="Netty" href="http://ifeve.com/category/netty/">Netty</a></li>
+	<li id="menu-item-12791" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-12791"><a href="http://ifeve.com/category/scala/">Scala</a></li>
+	<li id="menu-item-12312" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-12312"><a href="http://ifeve.com/getting-started-with-stom-index/">Storm 入门</a></li>
+	<li id="menu-item-9218" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-9218"><a href="http://ifeve.com/google-guava/">Guava 官方指南</a></li>
+	<li id="menu-item-20471" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-20471"><a href="http://ifeve.com/velocity-guide/">Apache Velocity 官方指南</a></li>
+	<li id="menu-item-21439" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-21439"><a href="http://ifeve.com/storm-translation/">Apache Storm 官方文档</a></li>
+</ul>
+</li>
+<li id="menu-item-555" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-555 parent_menu"><a href="http://ifeve.com/category/concurrency-translation/">其他译文</a>
+<ul class="sub-menu">
+	<li id="menu-item-2777" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-2777"><a href="http://ifeve.com/java-concurrent/">并发基础</a></li>
+	<li id="menu-item-3340" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-3340"><a href="http://ifeve.com/aqs/">j.u.c同步框架</a></li>
+	<li id="menu-item-2769" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2769"><a href="http://ifeve.com/fj/">Fork Join框架</a></li>
+	<li id="menu-item-9221" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-9221"><a href="http://ifeve.com/doug-lea/">Doug Lea 论文</a></li>
+	<li id="menu-item-4643" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4643"><a href="http://ifeve.com/mechanical-sympathy/">Mechanical Sympathy</a></li>
+	<li id="menu-item-6397" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6397"><a href="http://ifeve.com/stm/">软件事务内存导论</a></li>
+	<li id="menu-item-10845" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-10845"><a href="http://ifeve.com/jsr133-cn/">JSR133中文版</a></li>
+</ul>
+</li>
+<li id="menu-item-103" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-103 parent_menu"><a href="http://ifeve.com/category/talk-concurrent/">本站原创</a>
+<ul class="sub-menu">
+	<li id="menu-item-2763" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2763"><a href="http://ifeve.com/talk-concurrency/">聊聊并发</a></li>
+	<li id="menu-item-2753" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-2753"><a href="http://ifeve.com/java-memory-model-0/">深入理解Java内存模型</a></li>
+	<li id="menu-item-4862" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4862"><a href="http://ifeve.com/from-javaeye-sys-struct/">从Java视角理解系统结构</a></li>
+	<li id="menu-item-4627" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4627"><a href="http://ifeve.com/ali-itu-agile/">阿里内贸团队敏捷实践</a></li>
+</ul>
+</li>
+<li id="menu-item-7119" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-7119 parent_menu"><a href="http://ifeve.com/category/%e5%b9%b6%e5%8f%91%e4%b9%a6%e7%b1%8d/">并发书籍</a>
+<ul class="sub-menu">
+	<li id="menu-item-10846" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-10846"><a href="http://ifeve.com/art-of-java-concurrent-program/">《Java 并发编程的艺术》迷你书</a></li>
+	<li id="menu-item-6042" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6042"><a href="http://ifeve.com/perfbook/">《深入理解并行编程》</a></li>
+	<li id="menu-item-9172" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-9172"><a href="http://ifeve.com/c-plus-plus-concurrency-in-action/">《C++ 并发编程》</a></li>
+	<li id="menu-item-7785" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-7785"><a href="http://ifeve.com/java-7-concurrency-cookbook/">《Java 7 并发编程指南》</a></li>
+	<li id="menu-item-7120" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-7120"><a href="http://ifeve.com/jvm-concurrency">《Java 虚拟机并发编程》</a></li>
+	<li id="menu-item-12360" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-12360"><a href="http://ifeve.com/getting-started-with-stom-index/">《Storm入门》中文版</a></li>
+</ul>
+</li>
+<li id="menu-item-9171" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-9171 parent_menu"><a href="http://ifeve.com/need-you/">加入我们</a>
+<ul class="sub-menu">
+	<li id="menu-item-3246" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3246"><a href="http://ifeve.com/contribute/">我要投稿</a></li>
+	<li id="menu-item-6854" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-6854"><a href="http://ifeve.com/neitui/">内推阿里</a></li>
+</ul>
+</li>
+<li id="menu-item-105" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-105 parent_menu"><a href="http://ifeve.com/about-site/">关于本站</a>
+<ul class="sub-menu">
+	<li id="menu-item-11306" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-11306"><a href="http://ifeve.com/category/%e6%b4%bb%e5%8a%a8/">活动</a></li>
+	<li id="menu-item-1487" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-1487"><a href="http://ifeve.com/sitemap.html">文章归档</a></li>
+	<li id="menu-item-131" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-131"><a href="http://ifeve.com/about-site/about-me/">关于清英</a></li>
+	<li id="menu-item-7600" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-7600"><a href="http://ifeve.com/ads/">广告合作</a></li>
+</ul>
+</li>
+</ul>    </div>
+  <!-- logo -->
+  <h1 class="logo_text"><a href="http://ifeve.com/">并发编程网 - ifeve.com</a></h1>
+<h2 id="site_description">让天下没有难学的技术</h2>
+ </div>
+
+ <div id="main_content" class="clearfix">
+
+  <div id="left_col">
+      <div id="bread_crumb">
+    <ul class="clearfix">
+     <li id="bc_home"><a href="http://ifeve.com/" title="首页">首页</a></li>
+     <li id="bc_cat"><a href="http://ifeve.com/category/java/">JAVA</a></li>     <li class="last">聊聊并发（八）——Fork/Join框架介绍</li>
+    </ul>
+   </div>
+   
+   
+   <div class="post_wrap clearfix" id="single">
+    <div class="post">
+     <h3 class="title"><span>聊聊并发（八）——Fork/Join框架介绍</span></h3>
+     <div class="post_content">
+      <p>本文首发于<a href="http://www.infoq.com/cn/articles/fork-join-introduction" onclick="javascript:window.open(&#39;http://www.infoq.com/cn/articles/fork-join-introduction&#39;); return false;">InfoQ</a></p>
+<h2>1. 什么是Fork/Join框架</h2>
+<p>Fork/Join框架是Java7提供了的一个用于并行执行任务的框架， 是一个把大任务分割成若干个小任务，最终汇总每个小任务结果后得到大任务结果的框架。</p>
+<p>我们再通过Fork和Join这两个单词来理解下Fork/Join框架，Fork就是把一个大任务切分为若干子任务并行的执行，Join就是合并这些子任务的执行结果，最后得到这个大任务的结果。比如计算1+2+。。＋10000，可以分割成10个子任务，每个子任务分别对1000个数进行求和，最终汇总这10个子任务的结果。Fork/Join的运行流程图如下：</p>
+<p><img alt="" src="./聊聊并发（八）——Fork_Join框架介绍_files/21.png"><br>
+<span id="more-8436"></span></p>
+<h2>2. 工作窃取算法</h2>
+<p>工作窃取（work-stealing）算法是指某个线程从其他队列里窃取任务来执行。工作窃取的运行流程图如下：</p>
+<p><img class="alignright size-full wp-image-8440" alt="fj" src="./聊聊并发（八）——Fork_Join框架介绍_files/fj.png" width="414" height="358"></p>
+<p>那么为什么需要使用工作窃取算法呢？假如我们需要做一个比较大的任务，我们可以把这个任务分割为若干互不依赖的子任务，为了减少线程间的竞争，于是把这些子任务分别放到不同的队列里，并为每个队列创建一个单独的线程来执行队列里的任务，线程和队列一一对应，比如A线程负责处理A队列里的任务。但是有的线程会先把自己队列里的任务干完，而其他线程对应的队列里还有任务等待处理。干完活的线程与其等着，不如去帮其他线程干活，于是它就去其他线程的队列里窃取一个任务来执行。而在这时它们会访问同一个队列，所以为了减少窃取任务线程和被窃取任务线程之间的竞争，通常会使用双端队列，被窃取任务线程永远从双端队列的头部拿任务执行，而窃取任务的线程永远从双端队列的尾部拿任务执行。</p>
+<p>工作窃取算法的优点是充分利用线程进行并行计算，并减少了线程间的竞争，其缺点是在某些情况下还是存在竞争，比如双端队列里只有一个任务时。并且消耗了更多的系统资源，比如创建多个线程和多个双端队列。</p>
+<h2>3. Fork/Join框架的介绍</h2>
+<p>我们已经很清楚Fork/Join框架的需求了，那么我们可以思考一下，如果让我们来设计一个Fork/Join框架，该如何设计？这个思考有助于你理解Fork/Join框架的设计。</p>
+<p>第一步分割任务。首先我们需要有一个fork类来把大任务分割成子任务，有可能子任务还是很大，所以还需要不停的分割，直到分割出的子任务足够小。</p>
+<p>第二步执行任务并合并结果。分割的子任务分别放在双端队列里，然后几个启动线程分别从双端队列里获取任务执行。子任务执行完的结果都统一放在一个队列里，启动一个线程从队列里拿数据，然后合并这些数据。</p>
+<p>Fork/Join使用两个类来完成以上两件事情：</p>
+<ul>
+<li>ForkJoinTask：我们要使用ForkJoin框架，必须首先创建一个ForkJoin任务。它提供在任务中执行fork()和join()操作的机制，通常情况下我们不需要直接继承ForkJoinTask类，而只需要继承它的子类，Fork/Join框架提供了以下两个子类：
+<ul>
+<li>RecursiveAction：用于没有返回结果的任务。</li>
+<li>RecursiveTask ：用于有返回结果的任务。</li>
+</ul>
+</li>
+<li>ForkJoinPool ：ForkJoinTask需要通过ForkJoinPool来执行，任务分割出的子任务会添加到当前工作线程所维护的双端队列中，进入队列的头部。当一个工作线程的队列里暂时没有任务时，它会随机从其他工作线程的队列的尾部获取一个任务。</li>
+</ul>
+<h2>4. 使用Fork/Join框架</h2>
+<p>让我们通过一个简单的需求来使用下Fork／Join框架，需求是：计算1+2+3+4的结果。</p>
+<p>使用Fork／Join框架首先要考虑到的是如何分割任务，如果我们希望每个子任务最多执行两个数的相加，那么我们设置分割的阈值是2，由于是4个数字相加，所以Fork／Join框架会把这个任务fork成两个子任务，子任务一负责计算1+2，子任务二负责计算3+4，然后再join两个子任务的结果。</p>
+<p>因为是有结果的任务，所以必须继承RecursiveTask，实现代码如下：</p>
+<div id="highlighter_616400" class="syntaxhighlighter  "><div class="bar                                                "><div class="toolbar"><a href="http://ifeve.com/talk-concurrency-forkjoin/#viewSource" title="查看源代码" class="item viewSource" style="width: 16px; height: 16px;">查看源代码</a><div class="item copyToClipboard"><embed width="16" height="16" id="highlighter_616400_clipboard" type="application/x-shockwave-flash" title="复制到剪贴板" allowscriptaccess="always" wmode="transparent" flashvars="highlighterId=highlighter_616400" menu="false" src="http://ifeve.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/scripts/clipboard.swf"></div><a href="http://ifeve.com/talk-concurrency-forkjoin/#printSource" title="打印" class="item printSource" style="width: 16px; height: 16px;">打印</a><a href="http://ifeve.com/talk-concurrency-forkjoin/#about" title="帮助" class="item about" style="width: 16px; height: 16px;">帮助</a></div></div><div class="lines"><div class="line alt1"><table><tbody><tr><td class="number"><code>001</code></td><td class="content"><code class="plain">packagefj;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>002</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>003</code></td><td class="content"><code class="plain">importjava.util.concurrent.ExecutionException;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>004</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>005</code></td><td class="content"><code class="plain">importjava.util.concurrent.ForkJoinPool;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>006</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>007</code></td><td class="content"><code class="plain">importjava.util.concurrent.Future;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>008</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>009</code></td><td class="content"><code class="plain">importjava.util.concurrent.RecursiveTask;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>010</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>011</code></td><td class="content"><code class="plain">publicclassCountTaskextendsRecursiveTask {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>012</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>013</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">privatestaticfinalintTHRESHOLD= </code><code class="value">2</code><code class="plain">;</code><code class="comments">//阈值</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>014</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>015</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">privateintstart;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>016</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>017</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">privateintend;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>018</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>019</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">publicCountTask(intstart,intend) {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>020</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>021</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">this</code><code class="plain">.start= start;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>022</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>023</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">this</code><code class="plain">.end= end;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>024</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>025</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">}</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>026</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>027</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="color1">@Override</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>028</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>029</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">protectedInteger compute() {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>030</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>031</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">intsum = </code><code class="value">0</code><code class="plain">;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>032</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>033</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="comments">//如果任务足够小就计算任务</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>034</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>035</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">booleancanCompute = (end-start) &lt;=THRESHOLD;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>036</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>037</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">if</code><code class="plain">(canCompute) {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>038</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>039</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">for</code><code class="plain">(inti =start; i &lt;=end; i++) {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>040</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>041</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">sum += i;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>042</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>043</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">}</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>044</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>045</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">}</code><code class="keyword">else</code><code class="plain">{</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>046</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>047</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="comments">//如果任务大于阀值，就分裂成两个子任务计算</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>048</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>049</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">intmiddle = (start+end) / </code><code class="value">2</code><code class="plain">;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>050</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>051</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">CountTask leftTask =newCountTask(start, middle);</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>052</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>053</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">CountTask rightTask =newCountTask(middle + </code><code class="value">1</code><code class="plain">,end);</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>054</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>055</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="comments">//执行子任务</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>056</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>057</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">leftTask.fork();</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>058</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>059</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">rightTask.fork();</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>060</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>061</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="comments">//等待子任务执行完，并得到其结果</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>062</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>063</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">intleftResult=leftTask.join();</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>064</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>065</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">intrightResult=rightTask.join();</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>066</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>067</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="comments">//合并子任务</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>068</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>069</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">sum = leftResult&nbsp; + rightResult;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>070</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>071</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">}</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>072</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>073</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">returnsum;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>074</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>075</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">}</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>076</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>077</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">publicstaticvoidmain(String[] args) {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>078</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>079</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">ForkJoinPool forkJoinPool =newForkJoinPool();</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>080</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>081</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="comments">//生成一个计算任务，负责计算1+2+3+4</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>082</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>083</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">CountTask task =newCountTask(</code><code class="value">1</code><code class="plain">, </code><code class="value">4</code><code class="plain">);</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>084</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>085</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="comments">//执行一个任务</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>086</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>087</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">Future result = forkJoinPool.submit(task);</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>088</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>089</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">try</code><code class="plain">{</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>090</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>091</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">System.out.println(result.get());</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>092</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>093</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">}</code><code class="keyword">catch</code><code class="plain">(InterruptedException e) {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>094</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>095</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">}</code><code class="keyword">catch</code><code class="plain">(ExecutionException e) {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>096</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>097</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">}</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>098</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>099</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">}</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>100</code></td><td class="content">&nbsp;</td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>101</code></td><td class="content"><code class="plain">}</code></td></tr></tbody></table></div></div></div>
+<p>通过这个例子让我们再来进一步了解ForkJoinTask，ForkJoinTask与一般的任务的主要区别在于它需要实现compute方法，在这个方法里，首先需要判断任务是否足够小，如果足够小就直接执行任务。如果不足够小，就必须分割成两个子任务，每个子任务在调用fork方法时，又会进入compute方法，看看当前子任务是否需要继续分割成孙任务，如果不需要继续分割，则执行当前子任务并返回结果。使用join方法会等待子任务执行完并得到其结果。</p>
+<h2>5. Fork/Join框架的异常处理</h2>
+<p>ForkJoinTask在执行的时候可能会抛出异常，但是我们没办法在主线程里直接捕获异常，所以ForkJoinTask提供了isCompletedAbnormally()方法来检查任务是否已经抛出异常或已经被取消了，并且可以通过ForkJoinTask的getException方法获取异常。使用如下代码：</p>
+<pre>if(task.isCompletedAbnormally())
+{
+    System.out.println(task.getException());
+}</pre>
+<p>getException方法返回Throwable对象，如果任务被取消了则返回CancellationException。如果任务没有完成或者没有抛出异常则返回null。</p>
+<h2>6. Fork/Join框架的实现原理</h2>
+<p>ForkJoinPool由ForkJoinTask数组和ForkJoinWorkerThread数组组成，ForkJoinTask数组负责存放程序提交给ForkJoinPool的任务，而ForkJoinWorkerThread数组负责执行这些任务。</p>
+<p>ForkJoinTask的fork方法实现原理。当我们调用ForkJoinTask的fork方法时，程序会调用ForkJoinWorkerThread的pushTask方法异步的执行这个任务，然后立即返回结果。代码如下：</p>
+<div id="highlighter_772188" class="syntaxhighlighter  "><div class="bar  "><div class="toolbar"><a href="http://ifeve.com/talk-concurrency-forkjoin/#viewSource" title="查看源代码" class="item viewSource" style="width: 16px; height: 16px;">查看源代码</a><div class="item copyToClipboard"><embed width="16" height="16" id="highlighter_772188_clipboard" type="application/x-shockwave-flash" title="复制到剪贴板" allowscriptaccess="always" wmode="transparent" flashvars="highlighterId=highlighter_772188" menu="false" src="http://ifeve.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/scripts/clipboard.swf"></div><a href="http://ifeve.com/talk-concurrency-forkjoin/#printSource" title="打印" class="item printSource" style="width: 16px; height: 16px;">打印</a><a href="http://ifeve.com/talk-concurrency-forkjoin/#about" title="帮助" class="item about" style="width: 16px; height: 16px;">帮助</a></div></div><div class="lines"><div class="line alt1"><table><tbody><tr><td class="number"><code>1</code></td><td class="content"><code class="keyword">public</code> <code class="keyword">final</code> <code class="plain">ForkJoinTask fork() {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>2</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">((ForkJoinWorkerThread) Thread.currentThread())</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>3</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">.pushTask(</code><code class="keyword">this</code><code class="plain">);</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>4</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">return</code> <code class="keyword">this</code><code class="plain">;</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>5</code></td><td class="content"><code class="plain">}</code></td></tr></tbody></table></div></div></div>
+<p>pushTask方法把当前任务存放在ForkJoinTask 数组queue里。然后再调用ForkJoinPool的signalWork()方法唤醒或创建一个工作线程来执行任务。代码如下：</p>
+<div id="highlighter_688199" class="syntaxhighlighter  "><div class="bar  "><div class="toolbar"><a href="http://ifeve.com/talk-concurrency-forkjoin/#viewSource" title="查看源代码" class="item viewSource" style="width: 16px; height: 16px;">查看源代码</a><div class="item copyToClipboard"><embed width="16" height="16" id="highlighter_688199_clipboard" type="application/x-shockwave-flash" title="复制到剪贴板" allowscriptaccess="always" wmode="transparent" flashvars="highlighterId=highlighter_688199" menu="false" src="http://ifeve.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/scripts/clipboard.swf"></div><a href="http://ifeve.com/talk-concurrency-forkjoin/#printSource" title="打印" class="item printSource" style="width: 16px; height: 16px;">打印</a><a href="http://ifeve.com/talk-concurrency-forkjoin/#about" title="帮助" class="item about" style="width: 16px; height: 16px;">帮助</a></div></div><div class="lines"><div class="line alt1"><table><tbody><tr><td class="number"><code>01</code></td><td class="content"><code class="keyword">final</code> <code class="keyword">void</code> <code class="plain">pushTask(ForkJoinTask t) {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>02</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">ForkJoinTask[] q; </code><code class="keyword">int</code> <code class="plain">s, m;</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>03</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">if</code> <code class="plain">((q = queue) != </code><code class="keyword">null</code><code class="plain">) {&nbsp;&nbsp;&nbsp; </code><code class="comments">// ignore if queue removed</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>04</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">long</code> <code class="plain">u = (((s = queueTop) &amp; (m = q.length - </code><code class="value">1</code><code class="plain">)) &lt;&lt; ASHIFT) + ABASE;</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>05</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">UNSAFE.putOrderedObject(q, u, t);</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>06</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">queueTop = s + </code><code class="value">1</code><code class="plain">;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </code><code class="comments">// or use putOrderedInt</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>07</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">if</code> <code class="plain">((s -= queueBase) &lt;= </code><code class="value">2</code><code class="plain">)</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>08</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">pool.signalWork();</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>09</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">else</code> <code class="keyword">if</code> <code class="plain">(s == m)</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>10</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">growQueue();</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>11</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">}</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>12</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">}</code></td></tr></tbody></table></div></div></div>
+<p>ForkJoinTask的join方法实现原理。Join方法的主要作用是阻塞当前线程并等待获取结果。让我们一起看看ForkJoinTask的join方法的实现，代码如下：</p>
+<div id="highlighter_217663" class="syntaxhighlighter  "><div class="bar    "><div class="toolbar"><a href="http://ifeve.com/talk-concurrency-forkjoin/#viewSource" title="查看源代码" class="item viewSource" style="width: 16px; height: 16px;">查看源代码</a><div class="item copyToClipboard"><embed width="16" height="16" id="highlighter_217663_clipboard" type="application/x-shockwave-flash" title="复制到剪贴板" allowscriptaccess="always" wmode="transparent" flashvars="highlighterId=highlighter_217663" menu="false" src="http://ifeve.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/scripts/clipboard.swf"></div><a href="http://ifeve.com/talk-concurrency-forkjoin/#printSource" title="打印" class="item printSource" style="width: 16px; height: 16px;">打印</a><a href="http://ifeve.com/talk-concurrency-forkjoin/#about" title="帮助" class="item about" style="width: 16px; height: 16px;">帮助</a></div></div><div class="lines"><div class="line alt1"><table><tbody><tr><td class="number"><code>01</code></td><td class="content"><code class="keyword">public</code> <code class="keyword">final</code> <code class="plain">V join() {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>02</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">if</code> <code class="plain">(doJoin() != NORMAL)</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>03</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">return</code> <code class="plain">reportResult();</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>04</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">else</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>05</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">return</code> <code class="plain">getRawResult();</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>06</code></td><td class="content"><code class="plain">}</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>07</code></td><td class="content"><code class="keyword">private</code> <code class="plain">V reportResult() {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>08</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">int</code> <code class="plain">s; Throwable ex;</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>09</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">if</code> <code class="plain">((s = status) == CANCELLED)</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>10</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">throw</code> <code class="keyword">new</code> <code class="plain">CancellationException();</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>11</code></td><td class="content"><code class="keyword">if</code> <code class="plain">(s == EXCEPTIONAL &amp;&amp; (ex = getThrowableException()) != </code><code class="keyword">null</code><code class="plain">)</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>12</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">UNSAFE.throwException(ex);</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>13</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">return</code> <code class="plain">getRawResult();</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>14</code></td><td class="content"><code class="plain">}</code></td></tr></tbody></table></div></div></div>
+<p>首先，它调用了doJoin()方法，通过doJoin()方法得到当前任务的状态来判断返回什么结果，任务状态有四种：已完成（NORMAL），被取消（CANCELLED），信号（SIGNAL）和出现异常（EXCEPTIONAL）。</p>
+<ul>
+<li>如果任务状态是已完成，则直接返回任务结果。</li>
+<li>如果任务状态是被取消，则直接抛出CancellationException。</li>
+<li>如果任务状态是抛出异常，则直接抛出对应的异常。</li>
+</ul>
+<p>让我们再来分析下doJoin()方法的实现代码：</p>
+<div id="highlighter_443485" class="syntaxhighlighter  "><div class="bar                         "><div class="toolbar"><a href="http://ifeve.com/talk-concurrency-forkjoin/#viewSource" title="查看源代码" class="item viewSource" style="width: 16px; height: 16px;">查看源代码</a><div class="item copyToClipboard"><embed width="16" height="16" id="highlighter_443485_clipboard" type="application/x-shockwave-flash" title="复制到剪贴板" allowscriptaccess="always" wmode="transparent" flashvars="highlighterId=highlighter_443485" menu="false" src="http://ifeve.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/scripts/clipboard.swf"></div><a href="http://ifeve.com/talk-concurrency-forkjoin/#printSource" title="打印" class="item printSource" style="width: 16px; height: 16px;">打印</a><a href="http://ifeve.com/talk-concurrency-forkjoin/#about" title="帮助" class="item about" style="width: 16px; height: 16px;">帮助</a></div></div><div class="lines"><div class="line alt1"><table><tbody><tr><td class="number"><code>01</code></td><td class="content"><code class="keyword">private</code> <code class="keyword">int</code> <code class="plain">doJoin() {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>02</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">Thread t; ForkJoinWorkerThread w; </code><code class="keyword">int</code> <code class="plain">s; </code><code class="keyword">boolean</code> <code class="plain">completed;</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>03</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">if</code> <code class="plain">((t = Thread.currentThread()) </code><code class="keyword">instanceof</code> <code class="plain">ForkJoinWorkerThread) {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>04</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">if</code> <code class="plain">((s = status) &lt; </code><code class="value">0</code><code class="plain">)</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>05</code></td><td class="content"><code class="spaces">&nbsp;</code><code class="keyword">return</code> <code class="plain">s;</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>06</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">if</code> <code class="plain">((w = (ForkJoinWorkerThread)t).unpushTask(</code><code class="keyword">this</code><code class="plain">)) {</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>07</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">try</code> <code class="plain">{</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>08</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">completed = exec();</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>09</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">} </code><code class="keyword">catch</code> <code class="plain">(Throwable rex) {</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>10</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">return</code> <code class="plain">setExceptionalCompletion(rex);</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>11</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">}</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>12</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">if</code> <code class="plain">(completed)</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>13</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">return</code> <code class="plain">setCompletion(NORMAL);</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>14</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">}</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>15</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">return</code> <code class="plain">w.joinTask(</code><code class="keyword">this</code><code class="plain">);</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>16</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">}</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>17</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">else</code></td></tr></tbody></table></div><div class="line alt2"><table><tbody><tr><td class="number"><code>18</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="keyword">return</code> <code class="plain">externalAwaitDone();</code></td></tr></tbody></table></div><div class="line alt1"><table><tbody><tr><td class="number"><code>19</code></td><td class="content"><code class="spaces">&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain">}</code></td></tr></tbody></table></div></div></div>
+<p>在doJoin()方法里，首先通过查看任务的状态，看任务是否已经执行完了，如果执行完了，则直接返回任务状态，如果没有执行完，则从任务数组里取出任务并执行。如果任务顺利执行完成了，则设置任务状态为NORMAL，如果出现异常，则纪录异常，并将任务状态设置为EXCEPTIONAL。</p>
+<h2>7. 参考资料</h2>
+<ul>
+<li>JDK1.7源码</li>
+<li>http://ifeve.com/fork-join-5/</li>
+</ul>
+<div style="margin-top: 15px; font-style: italic">
+<p><strong>原创文章，转载请注明：</strong> 转载自<a href="http://ifeve.com/">并发编程网 – ifeve.com</a></p>
+<p><strong>本文链接地址:</strong> <a href="./聊聊并发（八）——Fork_Join框架介绍_files/聊聊并发（八）——Fork_Join框架介绍.html">聊聊并发（八）——Fork/Join框架介绍</a></p>
+</div>
+<p style="margin-top: 0; margin-bottom: 15px; color: #888888; font-size: 80%; font-style: italic">文章的脚注信息由WordPress的<a href="http://easwy.com/blog/wordpress/wp-posturl/" style="color: #8888FF; text-decoration: underline;" onclick="javascript:window.open(&#39;http://easwy.com/blog/wordpress/wp-posturl/&#39;); return false;">wp-posturl插件</a>自动生成</p>
+<div style="clear:both; margin-top:5px; margin-bottom:5px;"></div><div style="float:left"><!-- JiaThis Button BEGIN -->
+<div id="jiathis_style_32x32">
+	<a class="jiathis_button_qzone" title="分享到QQ空间"><span class="jiathis_txt jtico jtico_qzone"></span></a>
+	<a class="jiathis_button_tsina" title="分享到新浪微博"><span class="jiathis_txt jtico jtico_tsina"></span></a>
+	<a class="jiathis_button_tqq" title="分享到腾讯微博"><span class="jiathis_txt jtico jtico_tqq"></span></a>
+	<a class="jiathis_button_renren" title="分享到人人网"><span class="jiathis_txt jtico jtico_renren"></span></a>
+	<a class="jiathis_button_kaixin001" title="分享到开心网"><span class="jiathis_txt jtico jtico_kaixin001"></span></a>
+	<a href="http://www.jiathis.com/share/" class="jiathis jiathis_txt jtico jtico_jiathis" onclick="javascript:window.open(&#39;http://www.jiathis.com/share/&#39;); return false;"></a>
+	<a class="jiathis_counter_style"><span class="jiathis_button_expanded jiathis_counter jiathis_bubble_style" id="jiathis_counter_66" title="累计分享5次">5</span></a>
+</div>
+<script type="text/javascript" src="./聊聊并发（八）——Fork_Join框架介绍_files/jia.js" charset="utf-8"></script><script type="text/javascript" src="./聊聊并发（八）——Fork_Join框架介绍_files/plugin.client.js" charset="utf-8"></script>
+<!-- JiaThis Button END --></div><div style="clear:both; margin-top:5px; margin-bottom:5px;"></div>
+                         <div class="abh_box abh_box_down abh_box_business"><ul class="abh_tabs"> <li class="abh_about abh_active"><a href="http://ifeve.com/talk-concurrency-forkjoin/#abh_about">About</a></li> <li class="abh_posts"><a href="http://ifeve.com/talk-concurrency-forkjoin/#abh_posts">Latest Posts</a></li></ul><div class="abh_tab_content"><section class="vcard abh_about_tab abh_tab" style="display:block"><div class="abh_image"><a href="http://weibo.com/kirals" class="url" title="方 腾飞" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;"><img alt="" src="./聊聊并发（八）——Fork_Join框架介绍_files/a21e2b8f4893347e62eeca7597f04ebc" srcset="http://gravatar0.233.wiki/avatar/a21e2b8f4893347e62eeca7597f04ebc?s=160&amp;d=mm&amp;r=g 2x" class="avatar avatar-80 photo" height="80" width="80"></a></div><div class="abh_social"> </div><div class="abh_text"><h3 class="fn name"><a href="http://weibo.com/kirals" class="url" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">方 腾飞</a></h3><div class="abh_job"></div><div class="description note abh_description">花名清英，并发网创始人，蚂蚁金服技术专家。目前工作于支付宝微贷事业部，关注互联网金融，并发编程和敏捷实践。</div></div> </section><section class="abh_posts_tab abh_tab"><div class="abh_image"><a href="http://weibo.com/kirals" class="url" title="方 腾飞" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;"><img alt="" src="./聊聊并发（八）——Fork_Join框架介绍_files/a21e2b8f4893347e62eeca7597f04ebc" srcset="http://gravatar0.233.wiki/avatar/a21e2b8f4893347e62eeca7597f04ebc?s=160&amp;d=mm&amp;r=g 2x" class="avatar avatar-80 photo" height="80" width="80"></a></div><div class="abh_social"> </div><div class="abh_text"><h4>Latest posts by 方 腾飞 <span class="abh_allposts">(<a href="http://ifeve.com/author/admin/">see all</a>)</span></h4><div class="abh_description note"><ul>				<li>					<a href="http://ifeve.com/groovy/">《Groovy官方指南》翻译邀请</a><span> - 2015 年 9 月 19 日</span>				</li>				<li>					<a href="http://ifeve.com/alithink-9/">阿里感悟（九）-如何才能晋升</a><span> - 2015 年 8 月 14 日</span>				</li>				<li>					<a href="http://ifeve.com/alithink-interview/">阿里感悟（八）-如何才能加入阿里？</a><span> - 2015 年 8 月 9 日</span>				</li></ul></div></div> </section></div> </div><div class="yarpp-related">
+<h3>Related posts:</h3><ol>
+<li><a href="http://ifeve.com/customizing-concurrency-classes-9-2/" rel="bookmark" title="定制并发类（八）自定义在 Fork/Join 框架中运行的任务">定制并发类（八）自定义在 Fork/Join 框架中运行的任务 </a></li>
+<li><a href="http://ifeve.com/fork-join-1/" rel="bookmark" title="Fork/Join框架（一）引言">Fork/Join框架（一）引言 </a></li>
+<li><a href="http://ifeve.com/fork-join-6/" rel="bookmark" title="Fork/Join框架（六）取消任务">Fork/Join框架（六）取消任务 </a></li>
+<li><a href="http://ifeve.com/fork-join-5/" rel="bookmark" title="Fork/Join框架（五）在任务中抛出异常">Fork/Join框架（五）在任务中抛出异常 </a></li>
+<li><a href="http://ifeve.com/a-java-fork-join-framework/" rel="bookmark" title="Java Fork Join 框架">Java Fork Join 框架 </a></li>
+<li><a href="http://ifeve.com/fork-and-join-java/" rel="bookmark" title="Fork and Join: Java也可以轻松地编写并发程序">Fork and Join: Java也可以轻松地编写并发程序 </a></li>
+<li><a href="http://ifeve.com/a-java-fork-join-framework-2/" rel="bookmark" title="Java Fork Join框架 (二) 简介">Java Fork Join框架 (二) 简介 </a></li>
+<li><a href="http://ifeve.com/fork-join-2/" rel="bookmark" title="Fork/Join框架（二）创建一个Fork/Join池">Fork/Join框架（二）创建一个Fork/Join池 </a></li>
+<li><a href="http://ifeve.com/fork-join-3/" rel="bookmark" title="Fork/Join框架（三）加入任务的结果">Fork/Join框架（三）加入任务的结果 </a></li>
+<li><a href="http://ifeve.com/fork-join-4/" rel="bookmark" title="Fork/Join框架（四）异步运行任务">Fork/Join框架（四）异步运行任务 </a></li>
+<li><a href="http://ifeve.com/java-blocking-queue/" rel="bookmark" title="聊聊并发（七）——Java中的阻塞队列">聊聊并发（七）——Java中的阻塞队列 </a></li>
+<li><a href="http://ifeve.com/a-java-fork-join-framework-4/" rel="bookmark" title="Java Fork Join 框架（四）性能">Java Fork Join 框架（四）性能 </a></li>
+<li><a href="http://ifeve.com/producers-and-consumers-mode/" rel="bookmark" title="聊聊并发（十）生产者消费者模式">聊聊并发（十）生产者消费者模式 </a></li>
+<li><a href="http://ifeve.com/atomic-operation/" rel="bookmark" title="聊聊并发（五）原子操作的实现原理">聊聊并发（五）原子操作的实现原理 </a></li>
+<li><a href="http://ifeve.com/a-java-fork-join-framework-3-2/" rel="bookmark" title="Java Fork Join框架 (三) 设计">Java Fork Join框架 (三) 设计 </a></li>
+</ol>
+</div>
+           </div><!-- END .post_content -->
+    </div>
+    <div class="meta">
+          <ul>
+      <li class="post_date clearfix">
+       <span class="date">25</span>
+       <span class="month">Dec</span>
+       <span class="year">2013</span>
+      </li>
+      
+<li class="post_comment">
+5,308 人阅读</li>
+
+      <li class="post_author"><a href="http://ifeve.com/author/admin/" title="由方 腾飞发布" rel="author">方 腾飞</a></li>      <li class="post_category"><a href="http://ifeve.com/category/java/" rel="category tag">JAVA</a></li>       <li class="post_category"><div id="post-ratings-8436" class="post-ratings" itemscope="" itemtype="http://schema.org/Article" data-nonce="4acab198aa"><img id="rating_8436_1" src="./聊聊并发（八）——Fork_Join框架介绍_files/rating_on.gif" alt="好烂啊" title="好烂啊" onmouseover="current_rating(8436, 1, &#39;好烂啊&#39;);" onmouseout="ratings_off(4.8, 5, 0);" onclick="rate_post();" onkeypress="rate_post();" style="cursor: pointer; border: 0px;"><img id="rating_8436_2" src="./聊聊并发（八）——Fork_Join框架介绍_files/rating_on.gif" alt="没价值" title="没价值" onmouseover="current_rating(8436, 2, &#39;没价值&#39;);" onmouseout="ratings_off(4.8, 5, 0);" onclick="rate_post();" onkeypress="rate_post();" style="cursor: pointer; border: 0px;"><img id="rating_8436_3" src="./聊聊并发（八）——Fork_Join框架介绍_files/rating_on.gif" alt="凑合看看" title="凑合看看" onmouseover="current_rating(8436, 3, &#39;凑合看看&#39;);" onmouseout="ratings_off(4.8, 5, 0);" onclick="rate_post();" onkeypress="rate_post();" style="cursor: pointer; border: 0px;"><img id="rating_8436_4" src="./聊聊并发（八）——Fork_Join框架介绍_files/rating_on.gif" alt="还不错" title="还不错" onmouseover="current_rating(8436, 4, &#39;还不错&#39;);" onmouseout="ratings_off(4.8, 5, 0);" onclick="rate_post();" onkeypress="rate_post();" style="cursor: pointer; border: 0px;"><img id="rating_8436_5" src="./聊聊并发（八）——Fork_Join框架介绍_files/rating_half.gif" alt="超赞" title="超赞" onmouseover="current_rating(8436, 5, &#39;超赞&#39;);" onmouseout="ratings_off(4.8, 5, 0);" onclick="rate_post();" onkeypress="rate_post();" style="cursor: pointer; border: 0px;"> (<strong>5</strong> votes, average: <strong>4.80</strong> out of 5)<br><span class="post-ratings-text" id="ratings_8436_text"></span><meta itemprop="headline" content="聊聊并发（八）——Fork/Join框架介绍"><meta itemprop="description" content="本文首发于InfoQ
+1. 什么是Fork/Join框架
+Fork/Join框架是Java7提供了的一个用于并行执行任务的框架， 是一个把大任务分割成若干个小任务，最终汇总每个小任务结果后得到大任务结果的框架。
+
+我们再通过Fork和Join这两个单词来理解下Fork/Join框架，Fork就是把一个大任务切分为若干子任务并行的执行，Join就是合并这些子任务的执行结果，最后得到这个大任务..."><meta itemprop="datePublished" content="2013-12-25T10:42:41+00:00"><meta itemprop="url" content="http://ifeve.com/talk-concurrency-forkjoin/"><div style="display: none;" itemprop="aggregateRating" itemscope="" itemtype="http://schema.org/AggregateRating"><meta itemprop="bestRating" content="5"><meta itemprop="worstRating" content="1"><meta itemprop="ratingValue" content="4.8"><meta itemprop="ratingCount" content="5"></div></div><div id="post-ratings-8436-loading" class="post-ratings-loading">
+			<img src="./聊聊并发（八）——Fork_Join框架介绍_files/loading.gif" width="16" height="16" alt="Loading..." title="Loading..." class="post-ratings-image">Loading...</div></li>       <li class="post_comment"><a href="http://ifeve.com/talk-concurrency-forkjoin/#comments">4 条评论</a></li>           </ul>
+         </div>
+   </div><!-- END .post_wrap -->
+
+   
+      <div id="comments_wrapper">
+    
+
+
+
+
+<div id="comment_header" class="clearfix">
+
+ <ul id="comment_header_left">
+  <li id="add_comment"><a href="http://ifeve.com/talk-concurrency-forkjoin/#respond">发表评论</a></li>
+  <li id="comment_feed"><a href="http://ifeve.com/comments/feed/" title="RSS订阅评论">RSS订阅评论</a></li>
+ </ul>
+
+ <ul id="comment_header_right">
+   <li id="trackback_closed">Trackback 关闭</li>
+   <li id="comment_closed">评论 (4)</li>
+ </ul>
+
+
+</div><!-- END #comment_header -->
+
+<div id="comments">
+
+ <div id="comment_area">
+  <!-- start commnet -->
+  <ol class="commentlist">
+	
+ <li class="comment guest-comment even_comment" id="comment-19077">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（八）——Fork_Join框架介绍_files/c2d7747064a5f27247f75f3ae4b59275" srcset="http://gravatar0.233.wiki/avatar/c2d7747064a5f27247f75f3ae4b59275?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<span id="commentauthor-19077">
+
+heipacker
+</span>
+     </li>
+     <li class="comment-date">2014/05/16 8:29下午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Ftalk-concurrency-forkjoin%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-19077&#39;, &#39;comment-19077&#39;, &#39;comment-content-19077&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-19077">
+    <p>感觉没写完的样子啊。</p>
+  </div>
+
+<ul class="children">
+
+ <li class="comment admin-comment even_comment_children" id="comment-19124">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（八）——Fork_Join框架介绍_files/a21e2b8f4893347e62eeca7597f04ebc(1)" srcset="http://gravatar0.233.wiki/avatar/a21e2b8f4893347e62eeca7597f04ebc?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<a id="commentauthor-19124" class="url admin-url" href="http://weibo.com/kirals" rel="external nofollow" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">
+
+方 腾飞
+</a>
+     </li>
+     <li class="comment-date">2014/05/18 6:02下午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Ftalk-concurrency-forkjoin%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-19124&#39;, &#39;comment-19124&#39;, &#39;comment-content-19124&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-19124">
+    <p>有哪些可以补充？我会加上的</p>
+  </div>
+
+</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+
+ <li class="comment guest-comment odd_comment" id="comment-26062">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（八）——Fork_Join框架介绍_files/e4ba4b1cff5383ed3df52ce225034f03" srcset="http://gravatar1.233.wiki/avatar/e4ba4b1cff5383ed3df52ce225034f03?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<span id="commentauthor-26062">
+
+hsxwtogether
+</span>
+     </li>
+     <li class="comment-date">2015/01/30 4:09下午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Ftalk-concurrency-forkjoin%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-26062&#39;, &#39;comment-26062&#39;, &#39;comment-content-26062&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-26062">
+    <p>多谢分享</p>
+  </div>
+
+</li><!-- #comment-## -->
+
+ <li class="comment guest-comment even_comment" id="comment-26350">
+  <div class="comment-meta">
+   <div class="comment-meta-left">
+  <img alt="" src="./聊聊并发（八）——Fork_Join框架介绍_files/8dbea684f0e56a86c37568aca7c15d9d" srcset="http://gravatar1.233.wiki/avatar/8dbea684f0e56a86c37568aca7c15d9d?s=70&amp;d=mm&amp;r=g 2x" class="avatar avatar-35 photo" height="35" width="35">  
+    <ul class="comment-name-date">
+     <li class="comment-name">
+<span id="commentauthor-26350">
+
+深蓝色
+</span>
+     </li>
+     <li class="comment-date">2015/08/24 2:41下午</li>
+    </ul>
+   </div>
+
+   <ul class="comment-act">
+    <li class="comment-reply"><a rel="nofollow" class="comment-reply-login" href="http://ifeve.com/wp-login.php?redirect_to=http%3A%2F%2Fifeve.com%2Ftalk-concurrency-forkjoin%2F">登录以回复</a></li>
+    <li class="comment-quote"><a href="javascript:void(0);" onclick="MGJS_CMT.quote(&#39;commentauthor-26350&#39;, &#39;comment-26350&#39;, &#39;comment-content-26350&#39;, &#39;comment&#39;);">引用</a></li>
+       </ul>
+
+  </div>
+  <div class="comment-content" id="comment-content-26350">
+    <p>一直在学习Java并发的知识，站点很nice</p>
+  </div>
+
+</li><!-- #comment-## -->
+  </ol>
+  <!-- comments END -->
+
+  
+ </div><!-- #comment-list END -->
+
+
+ <div id="trackback_area">
+ <!-- start trackback -->
+  <!-- trackback end -->
+ </div><!-- #trackbacklist END -->
+
+ 
+
+
+ 
+ <div class="comment_form_wrapper" id="respond">
+    您必须 <a href="http://ifeve.com/wp-login.php">登陆</a> 后才能发表评论 </div>
+
+ </div><!-- #comment end -->   </div>
+   
+      <div id="previous_next_post_single">
+    <div class="clearfix">
+     <p id="previous_post"><a href="http://ifeve.com/reentrantlock-and-fairness/" rel="prev">ReentrantLock(重入锁)以及公平性</a></p>     <p id="next_post"><a href="http://ifeve.com/testing-concurrent-applications-7/" rel="next">测试并发应用(六）用 FindBugs 分析并发代码</a></p>    </div>
+   </div>
+   
+
+  </div><!-- END #left_col -->
+
+  <div id="container"></div>
+
+    <div id="right_col">
+   
+
+<div class="side_box clearfix" id="side_meta_content">
+
+  <ul id="social_link" class="clearfix">
+    <li class="rss_button"><a class="target_blank" href="http://ifeve.com/feed/" target="_blank">rss</a></li>
+       </ul>
+ 
+  <div id="search_area">
+    <form method="get" id="searchform" action="http://ifeve.com/">
+   <div><input id="search_button" class="rollover" type="image" src="./聊聊并发（八）——Fork_Join框架介绍_files/search_button.gif" alt="搜索一下" title="搜索一下"></div>
+   <div><input id="search_input" type="text" value="搜索一下" name="s" onfocus="if (this.value == &#39;搜索一下&#39;) this.value = &#39;&#39;;" onblur="if (this.value == &#39;&#39;) this.value = &#39;搜索一下&#39;;"></div>
+  </form>
+   </div>
+ 
+</div>
+
+
+<div id="side_top">
+
+ <div class="side_box widget_text" id="text-17">
+			<div class="textwidget"><!-- 请置于所有广告位代码之前 -->
+<script type="text/javascript" src="./聊聊并发（八）——Fork_Join框架介绍_files/m.js"></script>
+<script type="text/javascript">
+BAIDU_CLB_preloadSlots("980251","980252");
+</script><script charset="utf-8" src="./聊聊并发（八）——Fork_Join框架介绍_files/ecom"></script>
+<!-- 广告位：右最上 -->
+<script type="text/javascript">BAIDU_CLB_fillSlot("1063991");</script><div id="BAIDU_DUP_wrapper_1063991_0"></div><script charset="utf-8" src="./聊聊并发（八）——Fork_Join框架介绍_files/ecom(1)"></script><script charset="utf-8" src="./聊聊并发（八）——Fork_Join框架介绍_files/fixed7o.js"></script>
+
+<p>购买<a href="http://s.click.taobao.com/nMgPIwx" onclick="javascript:window.open(&#39;http://s.click.taobao.com/nMgPIwx&#39;); return false;">《Java并发编程的艺术》</a>,UCloud提供云服务</p>
+
+<!-- 广告位：首页右上1 -->
+<script type="text/javascript">BAIDU_CLB_fillSlot("980251");</script><div id="BAIDU_DUP_wrapper_980251_0"><iframe id="baidu_clb_slot_iframe_980251_0" src="./聊聊并发（八）——Fork_Join框架介绍_files/聊聊并发（八）——Fork_Join框架介绍.html" onload="BAIDU_DUP_CLB_renderFrame(&#39;980251_0&#39;)" width="300" height="80" vspace="0" hspace="0" allowtransparency="true" scrolling="no" marginwidth="0" marginheight="0" frameborder="0" style="border:0; vertical-align:bottom; margin:0; display:block;"></iframe></div>
+
+<br>
+<script language="javascript"> 
+var randomNum = Math.round(Math.random()*2);
+var image=new Array(3);
+image[0]="http://ww4.sinaimg.cn/mw690/005NgQwbgw1evsy1m5y19j308c028747.jpg";
+image[1]="http://ww2.sinaimg.cn/mw690/005NgQwbgw1evsy1kjd94j308c0283yh.jpg";
+image[2]="http://ww1.sinaimg.cn/mw690/005NgQwbgw1evsy1iukeij308c028dfu.jpg";
+var imageUrl=image[randomNum];
+var urls=new Array(3);
+urls[0]="http://yun.lu/student/knowledge/detail/5?from=ifeve.com_RightBanner2";
+urls[1]="http://yun.lu/student/knowledge/detail/14?from=ifeve.com_RightBanner2";
+urls[2]="http://yun.lu/student/knowledge/detail/11?from=ifeve.com_RightBanner2";
+var url = urls[randomNum];
+var adHTML = "<a href='"+url+"' target='_blank'><img src='"+imageUrl+"' border='0'></a>";
+document.write(adHTML);
+</script><a href="http://yun.lu/student/knowledge/detail/5?from=ifeve.com_RightBanner2" target="_blank"><img src="./聊聊并发（八）——Fork_Join框架介绍_files/005NgQwbgw1evsy1m5y19j308c028747.jpg" border="0"></a>
+
+<br>
+<!-- 广告位：首页右上2 -->
+<script type="text/javascript">BAIDU_CLB_fillSlot("980252");</script><div id="BAIDU_DUP_wrapper_980252_0"></div>
+<script async="" src="./聊聊并发（八）——Fork_Join框架介绍_files/adsbygoogle.js"></script>
+<ins class="adsbygoogle" style="display:inline-block;width:336px;height:280px" data-ad-client="ca-pub-9394337417063147" data-ad-slot="8872369516" data-adsbygoogle-status="done"><ins id="aswift_0_expand" style="display:inline-table;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><ins id="aswift_0_anchor" style="display:block;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><iframe width="336" height="280" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" allowfullscreen="true" onload="var i=this.id,s=window.google_iframe_oncopy,H=s&amp;&amp;s.handlers,h=H&amp;&amp;H[i],w=this.contentWindow,d;try{d=w.document}catch(e){}if(h&amp;&amp;d&amp;&amp;(!d.body||!d.body.firstChild)){if(h.call){setTimeout(h,0)}else if(h.match){try{h=s.upd(h,i)}catch(e){}w.location.replace(h)}}" id="aswift_0" name="aswift_0" style="left:0;position:absolute;top:0;"></iframe></ins></ins></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script></div>
+		</div>
+		<div class="side_box widget_recent_entries" id="recent-posts-2">
+		<h3 class="side_title">近期文章</h3>
+		<ul>
+					<li>
+				<a href="http://ifeve.com/using-redis-as-an-lru-cache%e6%96%87%e7%ab%a0%e7%bf%bb%e8%af%91/">Using Redis as an LRU cache文章翻译</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-syntax/">《Groovy语言规范》-语法</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-ides/">《Groovy官方文档》3.4 开发环境支持</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-dev-kit-io/">《Groovy官方文档》Groovy开发套件-使用IO</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/how-to-navigatehow-to-navigate-and-make-progress/">Adopt Open JDK官方文档(二)如何使用导航和取得进步？</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/java-io-%e4%b9%8b-inputstream%e6%ba%90%e7%a0%81/">Java IO 之 InputStream源码</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/static-factory-methods-vs-traditional-constructors/">静态工厂方法VS构造器</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-and-java/">《Groovy官方文档》1.3 Groovy和Java比较</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/install-groovy/">《Groovy官方文档》1.2安装Groovy</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy-download/">《Groovy官方文档》1.1 下载Groovy</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/fault-tolerance/">容错技术介绍</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/groovy/">《Groovy官方指南》翻译邀请</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/httpifeve-comvelocity-guide-summary/">Apache Velocity官方指南-总结</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/java8/">Java8简明指南</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/adopt-open-jd-10/">Adopt Open JDK官方文档（十）</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/lock-reentrantlock/">《Java并发编程从入门到精通》显示锁Lock和ReentrantLock</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/apache-storm/">Apache Storm 官方文档中文版</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/storm-internal-implementation/">Apache Storm 官方文档 —— 内部技术实现</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/java-concurrency-thread-safe/">《 Java并发编程从入门到精通》Thread安全与不安全</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/storm-acking-framework-implementation/">Apache Storm 官方文档 —— Ack 框架的实现</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/storm-structure-of-the-codebase/">Apache Storm 官方文档 —— 源码组织结构</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/java%e6%9e%84%e9%80%a0%e5%99%a8%e5%bf%85%e7%9f%a5%e5%bf%85%e4%bc%9a/">Java构造器必知必会</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/threadlocal%e4%bd%bf%e7%94%a8/">ThreadLocal使用</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/java-concurrency-9-3-3/">《 Java并发编程从入门到精通》 常见的内存溢出的三种情况</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/java-concurrency-thread-pool-monitor/">《 Java并发编程从入门到精通》 Java线程池的监控</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/java-util-calendar/">Java Date Time 教程-java.util.Calendar和GregorianCalendar</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/javaweb-servlet/">图解 &amp; 深入浅出 JavaWeb：Servlet 再说几句</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/storm-multilang-protocol/">Apache Storm 官方文档 —— 多语言接口协议</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/storm-defining-a-non-jvm-dsl-for-storm/">Apache Storm 官方文档 —— 定义 Storm 的非 JVM 语言 DSL</a>
+						</li>
+					<li>
+				<a href="http://ifeve.com/storm-using-non-jvm-languages-with-storm/">Apache Storm 官方文档 —— 使用非 JVM 语言开发</a>
+						</li>
+				</ul>
+		</div>
+<div class="side_box widget_text" id="text-10">
+			<div class="textwidget"><script async="" src="./聊聊并发（八）——Fork_Join框架介绍_files/adsbygoogle.js"></script>
+<!-- 首页－右上－2 -->
+<ins class="adsbygoogle" style="display:inline-block;width:336px;height:280px" data-ad-client="ca-pub-9394337417063147" data-ad-slot="8872369516" data-adsbygoogle-status="done"><ins id="aswift_1_expand" style="display:inline-table;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><ins id="aswift_1_anchor" style="display:block;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><iframe width="336" height="280" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" allowfullscreen="true" onload="var i=this.id,s=window.google_iframe_oncopy,H=s&amp;&amp;s.handlers,h=H&amp;&amp;H[i],w=this.contentWindow,d;try{d=w.document}catch(e){}if(h&amp;&amp;d&amp;&amp;(!d.body||!d.body.firstChild)){if(h.call){setTimeout(h,0)}else if(h.match){try{h=s.upd(h,i)}catch(e){}w.location.replace(h)}}" id="aswift_1" name="aswift_1" style="left:0;position:absolute;top:0;"></iframe></ins></ins></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script></div>
+		</div>
+<div class="side_box widget_views" id="views-4">
+<h3 class="side_title">热门文章</h3>
+<ul>
+<li><a href="http://ifeve.com/google-guava/" title="Google Guava官方教程（中文版）">Google Guava官方教程（中文版）</a> 172,699 人阅读 </li><li><a href="http://ifeve.com/overview/" title="Java NIO系列教程（一） Java NIO 概述">Java NIO系列教程（一） Java NIO 概述</a> 99,023 人阅读 </li><li><a href="http://ifeve.com/java-concurrency-thread-directory/" title="Java并发性和多线程介绍目录">Java并发性和多线程介绍目录</a> 78,711 人阅读 </li><li><a href="http://ifeve.com/java-nio-all/" title="Java NIO 系列教程">Java NIO 系列教程</a> 76,396 人阅读 </li><li><a href="http://ifeve.com/java-nio-vs-io/" title="Java NIO系列教程（十二） Java NIO与IO">Java NIO系列教程（十二） Java NIO与IO</a> 69,763 人阅读 </li><li><a href="http://ifeve.com/java-7-concurrency-cookbook/" title="Java 7 并发编程指南中文版">Java 7 并发编程指南中文版</a> 58,840 人阅读 </li><li><a href="http://ifeve.com/selectors/" title="Java NIO系列教程（六） Selector">Java NIO系列教程（六） Selector</a> 57,313 人阅读 </li><li><a href="http://ifeve.com/channels/" title="Java NIO系列教程（二） Channel">Java NIO系列教程（二） Channel</a> 52,465 人阅读 </li><li><a href="http://ifeve.com/buffers/" title="Java NIO系列教程（三） Buffer">Java NIO系列教程（三） Buffer</a> 51,718 人阅读 </li><li><a href="http://ifeve.com/getting-started-with-stom-index/" title="《Storm入门》中文版">《Storm入门》中文版</a> 45,141 人阅读 </li><li><a href="http://ifeve.com/netty5-user-guide/" title="Netty 5用户指南">Netty 5用户指南</a> 41,865 人阅读 </li><li><a href="http://ifeve.com/disruptor/" title="并发框架Disruptor译文">并发框架Disruptor译文</a> 40,354 人阅读 </li><li><a href="http://ifeve.com/locks-are-bad/" title="剖析Disruptor:为什么会这么快？(一)锁的缺点">剖析Disruptor:为什么会这么快？(一)锁的缺点</a> 39,206 人阅读 </li><li><a href="http://ifeve.com/socket-channel/" title="Java NIO系列教程（八） SocketChannel">Java NIO系列教程（八） SocketChannel</a> 35,679 人阅读 </li><li><a href="http://ifeve.com/perfbook/" title="《深入理解并行编程》中文版">《深入理解并行编程》中文版</a> 35,144 人阅读 </li><li><a href="http://ifeve.com/getting-started-with-storm-1/" title="Storm入门之第一章">Storm入门之第一章</a> 34,321 人阅读 </li><li><a href="http://ifeve.com/file-channel/" title="Java NIO系列教程（七） FileChannel">Java NIO系列教程（七） FileChannel</a> 32,922 人阅读 </li><li><a href="http://ifeve.com/netty1/" title="Netty源码解读（一）概述">Netty源码解读（一）概述</a> 29,763 人阅读 </li><li><a href="http://ifeve.com/google-guava-using-and-avoiding-null/" title="[Google Guava] 1.1-使用和避免null">[Google Guava] 1.1-使用和避免null</a> 29,594 人阅读 </li><li><a href="http://ifeve.com/java-concurrency-constructs/" title="Java并发结构">Java并发结构</a> 29,434 人阅读 </li></ul>
+</div>
+<div class="side_box widget_text" id="text-7">
+			<div class="textwidget"><script async="" src="./聊聊并发（八）——Fork_Join框架介绍_files/adsbygoogle.js"></script>
+<ins class="adsbygoogle" style="display:inline-block;width:336px;height:280px" data-ad-client="ca-pub-9394337417063147" data-ad-slot="4721371513" data-adsbygoogle-status="done"><ins id="aswift_2_expand" style="display:inline-table;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><ins id="aswift_2_anchor" style="display:block;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><iframe width="336" height="280" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" allowfullscreen="true" onload="var i=this.id,s=window.google_iframe_oncopy,H=s&amp;&amp;s.handlers,h=H&amp;&amp;H[i],w=this.contentWindow,d;try{d=w.document}catch(e){}if(h&amp;&amp;d&amp;&amp;(!d.body||!d.body.firstChild)){if(h.call){setTimeout(h,0)}else if(h.match){try{h=s.upd(h,i)}catch(e){}w.location.replace(h)}}" id="aswift_2" name="aswift_2" style="left:0;position:absolute;top:0;"></iframe></ins></ins></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+</div>
+		</div>
+<div class="side_box widget_recent_comments" id="recent-comments-2">
+<h3 class="side_title">近期评论</h3>
+<ul id="recentcomments"><li class="recentcomments"><span class="comment-author-link">qooge</span>发表在《<a href="http://ifeve.com/using-redis-as-an-lru-cache%e6%96%87%e7%ab%a0%e7%bf%bb%e8%af%91/comment-page-1/#comment-26398">Using Redis as an LRU cache文章翻译</a>》</li><li class="recentcomments"><span class="comment-author-link">sososolo</span>发表在《<a href="http://ifeve.com/using-redis-as-an-lru-cache%e6%96%87%e7%ab%a0%e7%bf%bb%e8%af%91/comment-page-1/#comment-26397">Using Redis as an LRU cache文章翻译</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://weibo.com/kirals" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">方 腾飞</a></span>发表在《<a href="http://ifeve.com/adopt-openjdk-translate-plan/comment-page-1/#comment-26396">Adopt OpenJDK 翻译计划</a>》</li><li class="recentcomments"><span class="comment-author-link">王山山</span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26395">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link">q1505740617</span>发表在《<a href="http://ifeve.com/adopt-openjdk-translate-plan/comment-page-1/#comment-26394">Adopt OpenJDK 翻译计划</a>》</li><li class="recentcomments"><span class="comment-author-link">JackWang</span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26393">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link">tomasxxoo</span>发表在《<a href="http://ifeve.com/apache-storm/comment-page-1/#comment-26392">Apache Storm 官方文档中文版</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://weibo.com/kirals" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">方 腾飞</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26391">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://weibo.com/kirals" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">方 腾飞</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26390">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link">JackWang</span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26389">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://weibo.com/kirals" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">方 腾飞</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26388">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link">JackWang</span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26387">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link">JackWang</span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26386">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://www.jamespan.me/blog/" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://www.jamespan.me/blog/&#39;); return false;">JamesPan</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26385">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://www.jamespan.me/blog/" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://www.jamespan.me/blog/&#39;); return false;">JamesPan</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26384">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://www.jamespan.me/blog/" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://www.jamespan.me/blog/&#39;); return false;">JamesPan</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26383">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link">JackWang</span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26382">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link">王山山</span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26381">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link"><a href="http://weibo.com/kirals" rel="external nofollow" class="url" onclick="javascript:window.open(&#39;http://weibo.com/kirals&#39;); return false;">方 腾飞</a></span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26380">《Groovy官方指南》翻译邀请</a>》</li><li class="recentcomments"><span class="comment-author-link">王山山</span>发表在《<a href="http://ifeve.com/groovy/comment-page-1/#comment-26379">《Groovy官方指南》翻译邀请</a>》</li></ul></div>
+<div class="side_box widget_tag_cloud" id="tag_cloud-4">
+<h3 class="side_title">标签</h3>
+<div class="tagcloud"><a href="http://ifeve.com/tag/actor/" class="tag-link-226" title="17个话题" style="font-size: 13.572815533981pt;">actor</a>
+<a href="http://ifeve.com/tag/basic/" class="tag-link-213" title="14个话题" style="font-size: 12.485436893204pt;">Basic</a>
+<a href="http://ifeve.com/tag/book/" class="tag-link-243" title="7个话题" style="font-size: 8.6796116504854pt;">book</a>
+<a href="http://ifeve.com/tag/cacheline/" class="tag-link-77" title="6个话题" style="font-size: 8pt;">cacheline</a>
+<a href="http://ifeve.com/tag/classes/" class="tag-link-251" title="8个话题" style="font-size: 9.3592233009709pt;">classes</a>
+<a href="http://ifeve.com/tag/collections/" class="tag-link-260" title="11个话题" style="font-size: 11.126213592233pt;">collections</a>
+<a href="http://ifeve.com/tag/concurrency/" class="tag-link-111" title="66个话题" style="font-size: 21.320388349515pt;">concurrency</a>
+<a href="http://ifeve.com/tag/concurrent/" class="tag-link-214" title="11个话题" style="font-size: 11.126213592233pt;">Concurrent</a>
+<a href="http://ifeve.com/tag/concurrent-data-structure/" class="tag-link-322" title="13个话题" style="font-size: 12.077669902913pt;">concurrent data structure</a>
+<a href="http://ifeve.com/tag/concurrenthashmap/" class="tag-link-61" title="6个话题" style="font-size: 8pt;">ConcurrentHashMap</a>
+<a href="http://ifeve.com/tag/customizing/" class="tag-link-250" title="8个话题" style="font-size: 9.3592233009709pt;">Customizing</a>
+<a href="http://ifeve.com/tag/date/" class="tag-link-505" title="7个话题" style="font-size: 8.6796116504854pt;">date</a>
+<a href="http://ifeve.com/tag/executor/" class="tag-link-177" title="20个话题" style="font-size: 14.388349514563pt;">Executor</a>
+<a href="http://ifeve.com/tag/executor-framework/" class="tag-link-231" title="17个话题" style="font-size: 13.572815533981pt;">Executor framework</a>
+<a href="http://ifeve.com/tag/false-sharing/" class="tag-link-119" title="7个话题" style="font-size: 8.6796116504854pt;">False Sharing</a>
+<a href="http://ifeve.com/tag/faq/" class="tag-link-39" title="13个话题" style="font-size: 12.077669902913pt;">faq</a>
+<a href="http://ifeve.com/tag/fork/" class="tag-link-232" title="11个话题" style="font-size: 11.126213592233pt;">fork</a>
+<a href="http://ifeve.com/tag/forkjoin/" class="tag-link-224" title="9个话题" style="font-size: 10.038834951456pt;">Fork/Join</a>
+<a href="http://ifeve.com/tag/fork-join/" class="tag-link-53" title="8个话题" style="font-size: 9.3592233009709pt;">fork join</a>
+<a href="http://ifeve.com/tag/framework/" class="tag-link-73" title="22个话题" style="font-size: 14.932038834951pt;">Framework</a>
+<a href="http://ifeve.com/tag/functional-programming/" class="tag-link-460" title="9个话题" style="font-size: 10.038834951456pt;">Functional Programming</a>
+<a href="http://ifeve.com/tag/guava/" class="tag-link-309" title="14个话题" style="font-size: 12.485436893204pt;">Guava</a>
+<a href="http://ifeve.com/tag/io/" class="tag-link-129" title="26个话题" style="font-size: 15.883495145631pt;">IO</a>
+<a href="http://ifeve.com/tag/java/" class="tag-link-69" title="74个话题" style="font-size: 22pt;">JAVA</a>
+<a href="http://ifeve.com/tag/java8/" class="tag-link-342" title="10个话题" style="font-size: 10.582524271845pt;">java8</a>
+<a href="http://ifeve.com/tag/jmm/" class="tag-link-31" title="31个话题" style="font-size: 16.970873786408pt;">jmm</a>
+<a href="http://ifeve.com/tag/join/" class="tag-link-233" title="11个话题" style="font-size: 11.126213592233pt;">join</a>
+<a href="http://ifeve.com/tag/jvm/" class="tag-link-127" title="16个话题" style="font-size: 13.165048543689pt;">JVM</a>
+<a href="http://ifeve.com/tag/lock/" class="tag-link-17" title="23个话题" style="font-size: 15.203883495146pt;">lock</a>
+<a href="http://ifeve.com/tag/memory-barriers/" class="tag-link-75" title="10个话题" style="font-size: 10.582524271845pt;">Memory Barriers</a>
+<a href="http://ifeve.com/tag/netty/" class="tag-link-280" title="16个话题" style="font-size: 13.165048543689pt;">Netty</a>
+<a href="http://ifeve.com/tag/nio/" class="tag-link-131" title="14个话题" style="font-size: 12.485436893204pt;">NIO</a>
+<a href="http://ifeve.com/tag/oauth-2-0/" class="tag-link-380" title="8个话题" style="font-size: 9.3592233009709pt;">OAuth 2.0</a>
+<a href="http://ifeve.com/tag/pattern-matching/" class="tag-link-167" title="8个话题" style="font-size: 9.3592233009709pt;">pattern-matching</a>
+<a href="http://ifeve.com/tag/ringbuffer/" class="tag-link-91" title="7个话题" style="font-size: 8.6796116504854pt;">RingBuffer</a>
+<a href="http://ifeve.com/tag/scala/" class="tag-link-166" title="22个话题" style="font-size: 14.932038834951pt;">Scala</a>
+<a href="http://ifeve.com/tag/stm/" class="tag-link-199" title="12个话题" style="font-size: 11.533980582524pt;">stm</a>
+<a href="http://ifeve.com/tag/storm/" class="tag-link-351" title="39个话题" style="font-size: 18.194174757282pt;">Storm</a>
+<a href="http://ifeve.com/tag/synchronization/" class="tag-link-216" title="15个话题" style="font-size: 12.757281553398pt;">synchronization</a>
+<a href="http://ifeve.com/tag/synchronized/" class="tag-link-15" title="10个话题" style="font-size: 10.582524271845pt;">Synchronized</a>
+<a href="http://ifeve.com/tag/thread/" class="tag-link-11" title="41个话题" style="font-size: 18.466019417476pt;">thread</a>
+<a href="http://ifeve.com/tag/time/" class="tag-link-506" title="7个话题" style="font-size: 8.6796116504854pt;">time</a>
+<a href="http://ifeve.com/tag/tomcat/" class="tag-link-347" title="8个话题" style="font-size: 9.3592233009709pt;">tomcat</a>
+<a href="http://ifeve.com/tag/volatile/" class="tag-link-25" title="11个话题" style="font-size: 11.126213592233pt;">volatile</a>
+<a href="http://ifeve.com/tag/%e5%a4%9a%e7%ba%bf%e7%a8%8b/" class="tag-link-197" title="8个话题" style="font-size: 9.3592233009709pt;">多线程</a></div>
+</div>
+<div class="side_box widget_text" id="text-9">
+			<div class="textwidget"><script async="" src="./聊聊并发（八）——Fork_Join框架介绍_files/adsbygoogle.js"></script>
+<ins class="adsbygoogle" style="display:inline-block;width:336px;height:280px" data-ad-client="ca-pub-9394337417063147" data-ad-slot="6198104715" data-adsbygoogle-status="done"><ins id="aswift_3_expand" style="display:inline-table;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><ins id="aswift_3_anchor" style="display:block;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent"><iframe width="336" height="280" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" allowfullscreen="true" onload="var i=this.id,s=window.google_iframe_oncopy,H=s&amp;&amp;s.handlers,h=H&amp;&amp;H[i],w=this.contentWindow,d;try{d=w.document}catch(e){}if(h&amp;&amp;d&amp;&amp;(!d.body||!d.body.firstChild)){if(h.call){setTimeout(h,0)}else if(h.match){try{h=s.upd(h,i)}catch(e){}w.location.replace(h)}}" id="aswift_3" name="aswift_3" style="left:0;position:absolute;top:0;"></iframe></ins></ins></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+
+</div>
+		</div>
+</div>
+<div id="side_middle" class="clearfix">
+ <div id="side_left">
+  <div class="side_box_short widget_archive" id="archives-2">
+<h3 class="side_title">文章归档</h3>
+		<ul>
+	<li><a href="http://ifeve.com/2015/09/">2015年九月</a>&nbsp;(27)</li>
+	<li><a href="http://ifeve.com/2015/08/">2015年八月</a>&nbsp;(44)</li>
+	<li><a href="http://ifeve.com/2015/07/">2015年七月</a>&nbsp;(20)</li>
+	<li><a href="http://ifeve.com/2015/06/">2015年六月</a>&nbsp;(21)</li>
+	<li><a href="http://ifeve.com/2015/05/">2015年五月</a>&nbsp;(15)</li>
+	<li><a href="http://ifeve.com/2015/04/">2015年四月</a>&nbsp;(27)</li>
+	<li><a href="http://ifeve.com/2015/03/">2015年三月</a>&nbsp;(13)</li>
+	<li><a href="http://ifeve.com/2015/02/">2015年二月</a>&nbsp;(11)</li>
+	<li><a href="http://ifeve.com/2015/01/">2015年一月</a>&nbsp;(13)</li>
+	<li><a href="http://ifeve.com/2014/12/">2014年十二月</a>&nbsp;(26)</li>
+	<li><a href="http://ifeve.com/2014/11/">2014年十一月</a>&nbsp;(61)</li>
+	<li><a href="http://ifeve.com/2014/10/">2014年十月</a>&nbsp;(33)</li>
+	<li><a href="http://ifeve.com/2014/09/">2014年九月</a>&nbsp;(47)</li>
+	<li><a href="http://ifeve.com/2014/08/">2014年八月</a>&nbsp;(27)</li>
+	<li><a href="http://ifeve.com/2014/07/">2014年七月</a>&nbsp;(13)</li>
+	<li><a href="http://ifeve.com/2014/06/">2014年六月</a>&nbsp;(32)</li>
+	<li><a href="http://ifeve.com/2014/05/">2014年五月</a>&nbsp;(45)</li>
+	<li><a href="http://ifeve.com/2014/04/">2014年四月</a>&nbsp;(41)</li>
+	<li><a href="http://ifeve.com/2014/03/">2014年三月</a>&nbsp;(34)</li>
+	<li><a href="http://ifeve.com/2014/02/">2014年二月</a>&nbsp;(38)</li>
+	<li><a href="http://ifeve.com/2014/01/">2014年一月</a>&nbsp;(19)</li>
+	<li><a href="http://ifeve.com/2013/12/">2013年十二月</a>&nbsp;(10)</li>
+	<li><a href="http://ifeve.com/2013/11/">2013年十一月</a>&nbsp;(5)</li>
+	<li><a href="http://ifeve.com/2013/10/">2013年十月</a>&nbsp;(20)</li>
+	<li><a href="http://ifeve.com/2013/09/">2013年九月</a>&nbsp;(38)</li>
+	<li><a href="http://ifeve.com/2013/08/">2013年八月</a>&nbsp;(48)</li>
+	<li><a href="http://ifeve.com/2013/07/">2013年七月</a>&nbsp;(26)</li>
+	<li><a href="http://ifeve.com/2013/06/">2013年六月</a>&nbsp;(16)</li>
+	<li><a href="http://ifeve.com/2013/05/">2013年五月</a>&nbsp;(9)</li>
+	<li><a href="http://ifeve.com/2013/04/">2013年四月</a>&nbsp;(17)</li>
+	<li><a href="http://ifeve.com/2013/03/">2013年三月</a>&nbsp;(41)</li>
+	<li><a href="http://ifeve.com/2013/02/">2013年二月</a>&nbsp;(25)</li>
+	<li><a href="http://ifeve.com/2013/01/">2013年一月</a>&nbsp;(57)</li>
+	<li><a href="http://ifeve.com/2012/12/">2012年十二月</a>&nbsp;(9)</li>
+	<li><a href="http://ifeve.com/2012/10/">2012年十月</a>&nbsp;(1)</li>
+	<li><a href="http://ifeve.com/2012/08/">2012年八月</a>&nbsp;(1)</li>
+		</ul>
+</div>
+ </div>
+ <div id="side_right">
+  <div class="side_box_short widget_links" id="linkcat-2">
+<h3 class="side_title">友情链接</h3>
+
+	<ul class="xoxo blogroll">
+<li><a href="http://coolshell.cn/" rel="co-worker" onclick="javascript:window.open(&#39;http://coolshell.cn/&#39;); return false;">coolshell</a></li>
+<li><a href="http://blog.91gaoqing.com/" onclick="javascript:window.open(&#39;http://blog.91gaoqing.com/&#39;); return false;">Programer. 大猫</a></li>
+<li><a href="http://hugozhu.myalert.info/" rel="co-worker" onclick="javascript:window.open(&#39;http://hugozhu.myalert.info/&#39;); return false;">一粟的博客</a></li>
+<li><a href="http://bj.liepin.com/" onclick="javascript:window.open(&#39;http://bj.liepin.com/&#39;); return false;">北京猎聘网</a></li>
+<li><a href="http://blog.csdn.net/cutesource/" rel="acquaintance co-worker" onclick="javascript:window.open(&#39;http://blog.csdn.net/cutesource/&#39;); return false;">志俊的博客</a></li>
+<li><a href="http://www.zuidaima.com/" onclick="javascript:window.open(&#39;http://www.zuidaima.com/&#39;); return false;">最代码</a></li>
+<li><a href="http://diandianzhe.com/" onclick="javascript:window.open(&#39;http://diandianzhe.com/&#39;); return false;">点点折</a></li>
+<li><a href="http://www.liuinsect.com/" onclick="javascript:window.open(&#39;http://www.liuinsect.com/&#39;); return false;">码梦为生</a></li>
+<li><a href="http://namiao.org/" rel="acquaintance co-worker" onclick="javascript:window.open(&#39;http://namiao.org/&#39;); return false;">纳秒</a></li>
+
+	</ul>
+</div>
+
+<div class="side_box_short widget_categories" id="categories-2">
+<h3 class="side_title">分类目录</h3>
+		<ul>
+	<li class="cat-item cat-item-387"><a href="http://ifeve.com/category/framework/akka/">akka</a> (18)
+</li>
+	<li class="cat-item cat-item-415"><a href="http://ifeve.com/category/android/">Android</a> (3)
+</li>
+	<li class="cat-item cat-item-289"><a href="http://ifeve.com/category/c/">C++</a> (11)
+</li>
+	<li class="cat-item cat-item-366"><a href="http://ifeve.com/category/cpu-2/">CPU</a> (2)
+</li>
+	<li class="cat-item cat-item-73"><a href="http://ifeve.com/category/framework/">Framework</a> (45)
+</li>
+	<li class="cat-item cat-item-458"><a href="http://ifeve.com/category/go/">GO</a> (6)
+</li>
+	<li class="cat-item cat-item-617"><a href="http://ifeve.com/category/groovy/">groovy</a> (6)
+</li>
+	<li class="cat-item cat-item-310"><a href="http://ifeve.com/category/guava-2/">guava</a> (22)
+</li>
+	<li class="cat-item cat-item-69"><a href="http://ifeve.com/category/java/">JAVA</a> (366)
+</li>
+	<li class="cat-item cat-item-127"><a href="http://ifeve.com/category/jvm/">JVM</a> (34)
+</li>
+	<li class="cat-item cat-item-300"><a href="http://ifeve.com/category/linux/">linux</a> (7)
+</li>
+	<li class="cat-item cat-item-280"><a href="http://ifeve.com/category/netty/">Netty</a> (22)
+</li>
+	<li class="cat-item cat-item-166"><a href="http://ifeve.com/category/scala/">Scala</a> (9)
+</li>
+	<li class="cat-item cat-item-388"><a href="http://ifeve.com/category/storm/">storm</a> (42)
+</li>
+	<li class="cat-item cat-item-485"><a href="http://ifeve.com/category/velocity/">Velocity</a> (6)
+</li>
+	<li class="cat-item cat-item-279"><a href="http://ifeve.com/category/web/">Web</a> (12)
+</li>
+	<li class="cat-item cat-item-148"><a href="http://ifeve.com/category/notice/">公告</a> (5)
+</li>
+	<li class="cat-item cat-item-378"><a href="http://ifeve.com/category/bigdata/">大数据</a> (20)
+</li>
+	<li class="cat-item cat-item-138"><a href="http://ifeve.com/category/%e5%a5%bd%e6%96%87%e6%8e%a8%e8%8d%90/">好文推荐</a> (26)
+</li>
+	<li class="cat-item cat-item-244"><a href="http://ifeve.com/category/%e5%b9%b6%e5%8f%91%e4%b9%a6%e7%b1%8d/">并发书籍</a> (95)
+</li>
+	<li class="cat-item cat-item-29"><a href="http://ifeve.com/category/concurrency-translation/" title="发布国外并发编程相关文献译文。">并发译文</a> (359)
+</li>
+	<li class="cat-item cat-item-7"><a href="http://ifeve.com/category/ask/" title="可以在这里发表并发编程的问题。如何发表？用QQ登陆，然后点击“新建文章”，管理员审核后就可以发表。">技术问答</a> (11)
+</li>
+	<li class="cat-item cat-item-147"><a href="http://ifeve.com/category/%e6%95%8f%e6%8d%b7%e7%ae%a1%e7%90%86/">敏捷管理</a> (5)
+</li>
+	<li class="cat-item cat-item-1"><a href="http://ifeve.com/category/talk-concurrent/">本站原创</a> (71)
+</li>
+	<li class="cat-item cat-item-367"><a href="http://ifeve.com/category/%e6%9e%b6%e6%9e%84/">架构</a> (18)
+</li>
+	<li class="cat-item cat-item-305"><a href="http://ifeve.com/category/%e6%b4%bb%e5%8a%a8/">活动</a> (7)
+</li>
+	<li class="cat-item cat-item-414"><a href="http://ifeve.com/category/%e7%bd%91%e7%bb%9c/">网络</a> (3)
+</li>
+		</ul>
+</div>
+ </div>
+</div>
+<div id="side_bottom">
+ <div class="side_box widget_text" id="text-15">
+			<div class="textwidget"><script async="" src="./聊聊并发（八）——Fork_Join框架介绍_files/adsbygoogle.js"></script>
+<!-- 摩天大楼 -->
+<ins class="adsbygoogle" style="display:inline-block;width:300px;height:600px" data-ad-client="ca-pub-9394337417063147" data-ad-slot="6358703113" data-adsbygoogle-status="done"><ins id="aswift_4_expand" style="display:inline-table;border:none;height:600px;margin:0;padding:0;position:relative;visibility:visible;width:300px;background-color:transparent"><ins id="aswift_4_anchor" style="display:block;border:none;height:600px;margin:0;padding:0;position:relative;visibility:visible;width:300px;background-color:transparent"><iframe width="300" height="600" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" allowfullscreen="true" onload="var i=this.id,s=window.google_iframe_oncopy,H=s&amp;&amp;s.handlers,h=H&amp;&amp;H[i],w=this.contentWindow,d;try{d=w.document}catch(e){}if(h&amp;&amp;d&amp;&amp;(!d.body||!d.body.firstChild)){if(h.call){setTimeout(h,0)}else if(h.match){try{h=s.upd(h,i)}catch(e){}w.location.replace(h)}}" id="aswift_4" name="aswift_4" style="left:0;position:absolute;top:0;"></iframe></ins></ins></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+<!-- CNZZ -->
+<script src="./聊聊并发（八）——Fork_Join框架介绍_files/stat.php" language="JavaScript"></script><script src="./聊聊并发（八）——Fork_Join框架介绍_files/core.php" charset="utf-8" type="text/javascript"></script><a href="http://www.cnzz.com/stat/website.php?web_id=5003572" title="站长统计" onclick="javascript:window.open(&#39;http://www.cnzz.com/stat/website.php?web_id=5003572&#39;); return false;"><img border="0" hspace="0" vspace="0" src="./聊聊并发（八）——Fork_Join框架介绍_files/pic.gif"></a>
+
+感谢<a href="https://www.upyun.com/index.html" onclick="javascript:window.open(&#39;https://www.upyun.com/index.html&#39;); return false;">又拍云</a>为本站提供服务器和图片服务。</div>
+		</div>
+</div>
+
+  </div>
+  
+  <div id="footer">
+
+<ul id="copyright">
+    <li>版权所有 ©&nbsp; <a href="http://ifeve.com/">并发编程网 – ifeve.com</a></li>
+    <li>ICP号: <a href="http://www.miibeian.gov.cn/" onclick="javascript:window.open(&#39;http://www.miibeian.gov.cn/&#39;); return false;">浙ICP备12046809号</a></li>
+<li class="last"><script type="text/javascript" src="./聊聊并发（八）——Fork_Join框架介绍_files/tongji.js"></script><img src="./聊聊并发（八）——Fork_Join框架介绍_files/tongji.do" border="0" width="1" height="1"><a href="http://tongji.linezing.com/report.html?unit_id=3067707" onclick="javascript:window.open(&#39;http://tongji.linezing.com/report.html?unit_id=3067707&#39;); return false;">量子统计</a><noscript>&lt;a href="http://www.linezing.com"&gt;&lt;img src="http://img.tongji.linezing.com/3067707/tongji.gif"/&gt;&lt;/a&gt;</noscript></li>
+   </ul>
+ </div>
+ </div><!-- END #main_content -->
+
+  <p id="return_top" style="display: block;"><a href="http://ifeve.com/talk-concurrency-forkjoin/#header">return top</a></p>
+ 
+<script type="text/javascript" src="./聊聊并发（八）——Fork_Join框架介绍_files/shCore.js"></script>
+<script type="text/javascript" src="./聊聊并发（八）——Fork_Join框架介绍_files/shBrushJava.js"></script>
+<script type="text/javascript">
+	(function(){
+		var corecss = document.createElement('link');
+		var themecss = document.createElement('link');
+		var corecssurl = "http://ifeve.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/styles/shCore.css?ver=2.1.364";
+		if ( corecss.setAttribute ) {
+				corecss.setAttribute( "rel", "stylesheet" );
+				corecss.setAttribute( "type", "text/css" );
+				corecss.setAttribute( "href", corecssurl );
+		} else {
+				corecss.rel = "stylesheet";
+				corecss.href = corecssurl;
+		}
+		document.getElementsByTagName("head")[0].insertBefore( corecss, document.getElementById("syntaxhighlighteranchor") );
+		var themecssurl = "http://ifeve.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/styles/shThemeEclipse.css?ver=2.1.364";
+		if ( themecss.setAttribute ) {
+				themecss.setAttribute( "rel", "stylesheet" );
+				themecss.setAttribute( "type", "text/css" );
+				themecss.setAttribute( "href", themecssurl );
+		} else {
+				themecss.rel = "stylesheet";
+				themecss.href = themecssurl;
+		}
+		//document.getElementById("syntaxhighlighteranchor").appendChild(themecss);
+		document.getElementsByTagName("head")[0].insertBefore( themecss, document.getElementById("syntaxhighlighteranchor") );
+	})();
+	SyntaxHighlighter.config.clipboardSwf = 'http://ifeve.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/scripts/clipboard.swf';
+	SyntaxHighlighter.config.strings.expandSource = 'show source';
+	SyntaxHighlighter.config.strings.viewSource = '查看源代码';
+	SyntaxHighlighter.config.strings.copyToClipboard = '复制到剪贴板';
+	SyntaxHighlighter.config.strings.copyToClipboardConfirmation = '代码现在在你的剪贴板';
+	SyntaxHighlighter.config.strings.print = '打印';
+	SyntaxHighlighter.config.strings.help = '帮助';
+	SyntaxHighlighter.config.strings.alert = 'SyntaxHighlighter\n\n';
+	SyntaxHighlighter.config.strings.noBrush = '无法找到Brush：';
+	SyntaxHighlighter.config.strings.brushNotHtmlScript = 'Brush不能设置 html-script选项';
+	SyntaxHighlighter.defaults['pad-line-numbers'] = true;
+	SyntaxHighlighter.all();
+</script>
+<link rel="stylesheet" id="yarppRelatedCss-css" href="./聊聊并发（八）——Fork_Join框架介绍_files/related.css" type="text/css" media="all">
+<script type="text/javascript" src="./聊聊并发（八）——Fork_Join框架介绍_files/comment-reply.min.js"></script>
+<script type="text/javascript">
+/* <![CDATA[ */
+var ratingsL10n = {"plugin_url":"http:\/\/ifeve.com\/wp-content\/plugins\/wp-postratings","ajax_url":"http:\/\/ifeve.com\/wp-admin\/admin-ajax.php","text_wait":"Please rate only 1 post at a time.","image":"stars_crystal","image_ext":"gif","max":"5","show_loading":"1","show_fading":"1","custom":"0"};
+var ratings_mouseover_image=new Image();ratings_mouseover_image.src=ratingsL10n.plugin_url+"/images/"+ratingsL10n.image+"/rating_over."+ratingsL10n.image_ext;;
+/* ]]> */
+</script>
+<script type="text/javascript" src="./聊聊并发（八）——Fork_Join框架介绍_files/postratings-js.js"></script>
+<script type="text/javascript">
+/* <![CDATA[ */
+var viewsCacheL10n = {"admin_ajax_url":"http:\/\/ifeve.com\/wp-admin\/admin-ajax.php","post_id":"8436"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="./聊聊并发（八）——Fork_Join框架介绍_files/postviews-cache.js"></script>
+
+
+
+<script src="./聊聊并发（八）——Fork_Join框架介绍_files/jquery.min.js"></script>
+
+<script src="./聊聊并发（八）——Fork_Join框架介绍_files/jquery.bpopup-0.8.0.min.js"></script>
+
+
+<!--
+<script type="text/javascript">
+
+;(function($) {
+
+    $(function() {
+
+        var url=document.referrer;
+
+        if ( url && url.search("http://")>-1) {
+
+            var refurl =  url.match(/:\/\/(.[^/]+)/)[1];
+
+            if(refurl.indexOf("baidu.com")>-1){
+
+                $('#nobaidu_dlg').bPopup();
+
+            }
+
+        }
+
+    });
+
+
+
+})(jQuery);
+
+</script>
+
+
+
+
+<div id="nobaidu_dlg" style="background-color:#fff; border-radius:15px;color:#000;display:none;padding:20px;min-width:450px;min-height:180px;">
+
+    <span class="bClose" style="cursor:pointer; position:absolute; right:10px;top:5px;">x<span/>
+
+    <img src="http://coolshell.cn//wp-content/themes/inove/img/nobaidu.jpg" align="left">
+
+     <p style="margin-left:200px;margin-top: 20px; line-height: 30px;">
+
+     检测到你还在使用百度这个搜索引擎，<br/>
+
+     做为一个程序员，这是一种自暴自弃！<br/>
+
+     <br/>
+
+     </p>
+
+     <p align="center" style="margin-top:20px;">
+
+     <b><a href="http://coolshell.cn/articles/7186.html">作环保的程序员，从不用百度开始！</a></b>
+
+     </p>
+
+</div>
+-->
+
+<!-- Dynamic page generated in 2.330 seconds. -->
+<!-- Cached page generated by WP-Super-Cache on 2015-09-29 17:13:56 -->
+</body></html>

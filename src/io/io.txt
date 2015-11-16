@@ -1,0 +1,133 @@
+IO流分类
+1.流向划分
+输入流输出流
+
+2.数据划分
+字节流:可以一切文件，包括纯文本，doc,音频，视频
+字节输入流：InputStream, FileInputStream
+read() + close()
+
+字节输出流:OutputSteam,FileOutStream
+write() + flush() + close()
+
+字符流：文本文件，只能处理纯文本(全部为可见字符，人看得懂的)
+字符输入流：Reader,FileReader
+read() + close()
+
+字符输出流:Writer,FileWriter
+write() + flush() + close()
+
+3.功能划分
+节点流：包果源头（上面提到的，直接跟文件交互的）
+节点流还有以下
+1)字节数组(源是字节数组，不是文件, see example io/bytearrayinputstream/Demo1.java)
+	输入流ByteArrayInputStream read()  
+		BufferedInputStream bis = new BufferedInputStream(new ByteArrayInputStream(byte[] array))
+		操作行为跟FileInputStream
+	输出流ByteArrayOuputStream write() + toByteArray()
+		ByteArrayOutputStream baos = new ByteArrayInputStream()
+		操作行为跟FileOutputStream稍有区别
+文件-->程序-->字节数组
+文件输入流   字节数组输出流	
+字节数组-->程序-->文件
+字节数组输入流  文件输出流
+	
+处理流：增强功能，提供性能(在节点流之上，相当于对节点流进行了包装)
+文件->节点流->处理流->程序
+
+处理流之一 缓冲流
+1.字节缓冲流
+BufferedInputStream bis = new BufferedInputStream(new FileInputStream())
+BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream())
+没有新增方法，只是加入了缓冲
+
+2.字符缓冲流
+BufferedReader br = new BufferedReader(new FileReader())
+新增方法:readLine()
+
+BufferedWriter bw = new BufferedWriter(new FileWriter())
+新增方法:newLine() 换行符号,也可以用"\r\n"
+
+处理流之二 转换流
+字节点转换为字符流，处理乱码（编码集，解码集）
+1.编码与解码概念
+编码: 字符 --编码字符集-> 二进制(字节)
+解码: 二进制(字节) --解码字符集-> 字符
+2.乱码(see example in package io.endecoder)
+1）编码与解码的字符集不统一
+2）字节缺少，长度丢失
+
+3.转换
+InputStreamReader 字节转换为字符，解码
+OutputStreamWriter 字符转换为字节，编码
+BufferedReader br = new BufferedReader(new FileReader(new File(...)))
+读的时候，也就是解码(字节到字符)的时候不能指定字符集，字符流不能指定字符集，但字节流可以，改成
+BufferedReader br = new BufferedReader(new FileInputStream(new File(...)))
+但这样的话是不行的，字符流不能和字节流直接进行转换,所以需要一个解码转换流InputStreamReader，同时可以指定解码集
+BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(new File(...))),"UTF-8")
+
+指定编码字符集进行转换
+BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(new File(...)),"UTF-8"))
+
+处理流之三过滤流
+基本类型+String 
+输入流:
+DataInputStream(读基本类型，字节流)
+DataInputStream dis = new DataInputStream(new BufferedInputStream(...))
+输出 流:
+DataInputStream(写出基本类型，字节流)
+DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(...))
+
+引用类型
+反序列化 输入流 ObjectInputStream readObject()
+序列化 输出流 ObjectOutputStream writeObject()
+注意
+先序列化后反序列化，反序列化的顺序必须与序列化的顺序一致
+不是所有的对象都可以序列化，实现java.io.Serialisable
+不是所有的属性都需要序列化，用transient表示
+ 
+打印流
+PrintStream，同时也是一个输出字节流
+PrintStream ps = new PrintStream(new BufferedOutputStream(new FileOutputStream(...)))
+
+设计模式玩的就是类与类之间的关系,四种关系
+1.依赖：形参或局部 变量
+2.关联：属性
+	聚合：属性，整体与部分不一致的生命周期
+	组合：属性，整体与部分一致的生命周期
+3.继承
+4.实现
+
+
+RandomAccessFile
+seek()
+
+文件分割的思路
+第一步，分割的准备
+0)分割的块数
+1)每一块的大小
+2)每块的名称
+第二步
+3)分割
+a)第几块，每块的起点，实际大小
+b)文件分割
+
+文件合并
+其实就是写的时候追加，每次写都从文件的末尾写起
+
+SequenceInputStream
+把多个流合并成一个流
+
+父目录不能copy到子目录
+判断子目录的路径是否包含你目录的路径
+
+删除超长目录
+robocopy.exe
+
+文件夹copy思路
+首先肯定要递归
+如果是文件夹就创建
+如果是文件就通过流copy创建文件
+
+
+

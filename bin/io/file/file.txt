@@ -1,0 +1,5 @@
+File
+mkdir() 父目录不存在，不会创建
+mkdirs() 父目录不存在，一起创建
+list() 文件或目录的字符串形式，路径,返回String[]
+listFiles() 返回的是File[]
