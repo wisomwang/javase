@@ -19,7 +19,7 @@ public final class $Proxy0 extends Proxy implements Star {
 					new Class[] { Class.forName("java.lang.Object") });
 			m0 = Class.forName("java.lang.Object").getMethod("hashCode", new Class[0]);
 			m3 = Class.forName("designpattern.proxy.dynamic").getMethod("sing", new Class[0]);
-			m4 = Class.forName("designpattern.proxy.dynamic").getMethod("sing", new Class[0]);
+			m4 = Class.forName("designpattern.proxy.dynamic").getMethod("signContract", new Class[0]);
 			m2 = Class.forName("java.lang.Object").getMethod("toString", new Class[0]);
 		} catch (NoSuchMethodException nosuchmethodexception) {
 			throw new NoSuchMethodError(nosuchmethodexception.getMessage());

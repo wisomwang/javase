@@ -46,6 +46,7 @@ class MyThread extends Thread {
 		 * 直到phaser处于下一阶段
 		 */
 		phaser.awaitAdvance(phaser.getPhase()); // 此处可使用latch.await()
+		System.out.println("now current phase " + phaser.getPhase());
 		for (int i = 0; i < 2; i++) {
 			System.out.println(c + " ");
 		}

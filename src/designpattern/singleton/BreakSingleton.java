@@ -12,7 +12,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
 /***
- * 反映和序列化破坏单例模式
+ * 反序列化和序列化破坏单例模式
  * 
  * @author smwang
  * 
@@ -43,8 +43,8 @@ public class BreakSingleton implements Serializable {
 
 	public static void main(String[] args) throws ClassNotFoundException, NoSuchMethodException, SecurityException,
 			InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		// testReflection();
-		testSerialization();
+		 testReflection();
+//		testSerialization();
 	}
 
 	private static void testSerialization() {

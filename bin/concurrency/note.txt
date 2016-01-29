@@ -16,6 +16,14 @@ ReentrantReadWriteLock有两个锁，一个读锁，一个写锁，使用读操�
 Lock.newCondition.await对应Object.wait(await有延时方法，await方法要用在while循环中)
 Lock.newCondition.signal or signalAll对应Object.notify or notifyAll
 可以参考源代码LinkedBlockingQueue,他实现了类似生产者消费者模式
+
+一个对象有多个synchronized的方法，如A(),B(),C(),当进入A()时获得锁，这时可以进入B(),C()，这就是所谓的
+可以获取重入锁，如果不能的话，就会可能引起死锁，代码一下在等待了
+还有一种重入锁的情况是，子类的synchronized方法可以访问父类的synchronized方法
+
+当一个线程执行的代码出现异常时，如果该线程持有锁的话，会自动释放锁
+
+同步不会被继承
 ----------------------锁---------------------------
 
 ----------------------同步辅助类---------------------------
