@@ -1,0 +1,249 @@
+SSH部分
+
+1.创建证书
+进入CMD窗口，按如下步骤操作
+C:\Users\smwang>keytool -genkey -alias mystore -keyalg RSA -keystore D:\studyspace\javase\src\networking\ssl\server.keys
+Enter keystore password:
+Re-enter new password:(密码是123456)
+What is your first and last name?
+  [Unknown]:  smwang
+What is the name of your organizational unit?
+  [Unknown]:  smwang
+What is the name of your organization?
+  [Unknown]:  smwang
+What is the name of your City or Locality?
+  [Unknown]:  hangzhou
+What is the name of your State or Province?
+  [Unknown]:  hangzhou
+What is the two-letter country code for this unit?
+  [Unknown]:  86
+Is CN=smwang, OU=smwang, O=smwang, L=hangzhou, ST=hangzhou, C=86 correct?
+  [no]:
+What is your first and last name?
+  [smwang]:  smwang
+What is the name of your organizational unit?
+  [smwang]:  smwang
+What is the name of your organization?
+  [smwang]:  smwang
+What is the name of your City or Locality?
+  [hangzhou]:  hanhzhou
+What is the name of your State or Province?
+  [hangzhou]:  hangzhou
+What is the two-letter country code for this unit?
+  [86]:
+Is CN=smwang, OU=smwang, O=smwang, L=hanhzhou, ST=hangzhou, C=86 correct?
+  [no]:  yes
+
+Enter key password for <mystore>
+        (RETURN if same as keystore password):
+同keystore password
+
+2.测试程序
+情况一
+EchoServer1,EchoClient1
+服务端创建SSLContext的时候，只声明了KeyMananger[]，表明客户不需要在服务端的信任仓库了，但服务端需要在客户端的信任仓库了
+客户端使用非SSLSocket，就是普通的Socket
+
+结果服务端异常如下：
+javax.net.ssl.SSLException: Unrecognized SSL message, plaintext connection?
+	at sun.security.ssl.InputRecord.handleUnknownRecord(InputRecord.java:541)
+	at sun.security.ssl.InputRecord.read(InputRecord.java:374)
+	at sun.security.ssl.SSLSocketImpl.readRecord(SSLSocketImpl.java:861)
+	at sun.security.ssl.SSLSocketImpl.performInitialHandshake(SSLSocketImpl.java:1262)
+	at sun.security.ssl.SSLSocketImpl.readDataRecord(SSLSocketImpl.java:816)
+	at sun.security.ssl.AppInputStream.read(AppInputStream.java:102)
+	at sun.nio.cs.StreamDecoder.readBytes(StreamDecoder.java:283)
+	at sun.nio.cs.StreamDecoder.implRead(StreamDecoder.java:325)
+	at sun.nio.cs.StreamDecoder.read(StreamDecoder.java:177)
+	at java.io.InputStreamReader.read(InputStreamReader.java:184)
+	at java.io.BufferedReader.fill(BufferedReader.java:154)
+	at java.io.BufferedReader.readLine(BufferedReader.java:317)
+	at java.io.BufferedReader.readLine(BufferedReader.java:382)
+	at networking.ssl.server.EchoServer1.service(EchoServer1.java:100)
+	at networking.ssl.server.EchoServer1.main(EchoServer1.java:31)
+        
+客户端异常如下：
+Client received: 
+
+
+情况二
+EchoServer1,EchoClient1
+服务端创建SSLContext的时候，只声明了KeyMananger[]，表明客户不需要在服务端的信任仓库了，但服务端需要在客户端的信任仓库了
+客户端通过SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();得到socket,相当于
+是sslContext.init(null, null, null);
+ 
+//tm为空的话，会创建一个默认的TrustManager对象，及与这关联的KeyStore对象，KeyStore对象按如下步骤获取安全证书
+//1.先尝试从系统属性javax.net.ssl.trustStore
+//(	D:\studyspace\javase\bin>java -Djavax.net.ssl.trustStore=D:\studyspace\javase\src\networking\ssl\server\server.keys networking.ssl.client.EchoClient2)
+//可以执行，不加-Djavax.net.ssl.trustStore=....报错
+
+//2.失败的话，会尝试 jdk1.7.0\jre\lib\security\jssecacerts文件作为安全证书 
+//3.失败的话，会尝试 jdk1.7.0\jre\lib\security\cacerts文件作为安全证书
+结果服务端异常如下：(只要2,3有一个文件找到了，但是内容不对就报如下错误)
+javax.net.ssl.SSLHandshakeException: Received fatal alert: certificate_unknown
+        at sun.security.ssl.Alerts.getSSLException(Unknown Source)
+        at sun.security.ssl.Alerts.getSSLException(Unknown Source)
+        at sun.security.ssl.SSLSocketImpl.recvAlert(Unknown Source)
+        at sun.security.ssl.SSLSocketImpl.readRecord(Unknown Source)
+        at sun.security.ssl.SSLSocketImpl.performInitialHandshake(Unknown Source)
+        at sun.security.ssl.SSLSocketImpl.readDataRecord(Unknown Source)
+        at sun.security.ssl.AppInputStream.read(Unknown Source)
+        at sun.nio.cs.StreamDecoder.readBytes(Unknown Source)
+        at sun.nio.cs.StreamDecoder.implRead(Unknown Source)
+        at sun.nio.cs.StreamDecoder.read(Unknown Source)
+        at java.io.InputStreamReader.read(Unknown Source)
+        at java.io.BufferedReader.fill(Unknown Source)
+        at java.io.BufferedReader.readLine(Unknown Source)
+        at java.io.BufferedReader.readLine(Unknown Source)
+        at networking.ssl.server.EchoServer.service(EchoServer.java:100)
+        at networking.ssl.server.EchoServer.main(EchoServer.java:31)
+        
+客户端异常如下：表示在本地的信任仓库中不能找到请求目标（服务器）的合法的证书
+javax.net.ssl.SSLException: Connection has been shutdown: 
+javax.net.ssl.SSLHandshakeException: sun.security.validator.ValidatorException: PKIX path building fail
+ertPathBuilderException: unable to find valid certification path to requested target
+        at sun.security.ssl.SSLSocketImpl.checkEOF(Unknown Source)
+        at sun.security.ssl.AppInputStream.read(Unknown Source)
+        at sun.nio.cs.StreamDecoder.readBytes(Unknown Source)
+        at sun.nio.cs.StreamDecoder.implRead(Unknown Source)
+        at sun.nio.cs.StreamDecoder.read(Unknown Source)
+        at java.io.InputStreamReader.read(Unknown Source)
+        at java.io.BufferedReader.fill(Unknown Source)
+        at java.io.BufferedReader.readLine(Unknown Source)
+        at java.io.BufferedReader.readLine(Unknown Source)
+        at networking.ssl.client.EchoClient.<init>(EchoClient.java:32)
+        at networking.ssl.client.EchoClient.main(EchoClient.java:18)
+Caused by: javax.net.ssl.SSLHandshakeException: sun.security.validator.ValidatorException: PKIX path building failed: sun.security.provider.certpath.SunCertPathB
+ertification path to requested target
+        at sun.security.ssl.Alerts.getSSLException(Unknown Source)
+        at sun.security.ssl.SSLSocketImpl.fatal(Unknown Source)
+        at sun.security.ssl.Handshaker.fatalSE(Unknown Source)
+        at sun.security.ssl.Handshaker.fatalSE(Unknown Source)
+        at sun.security.ssl.ClientHandshaker.serverCertificate(Unknown Source)
+        at sun.security.ssl.ClientHandshaker.processMessage(Unknown Source)
+        at sun.security.ssl.Handshaker.processLoop(Unknown Source)
+        at sun.security.ssl.Handshaker.process_record(Unknown Source)
+        at sun.security.ssl.SSLSocketImpl.readRecord(Unknown Source)
+        at sun.security.ssl.SSLSocketImpl.performInitialHandshake(Unknown Source)
+        at sun.security.ssl.SSLSocketImpl.writeRecord(Unknown Source)
+        at sun.security.ssl.AppOutputStream.write(Unknown Source)
+        at sun.nio.cs.StreamEncoder.writeBytes(Unknown Source)
+        at sun.nio.cs.StreamEncoder.implFlushBuffer(Unknown Source)
+        at sun.nio.cs.StreamEncoder.implFlush(Unknown Source)
+        at sun.nio.cs.StreamEncoder.flush(Unknown Source)
+        at java.io.OutputStreamWriter.flush(Unknown Source)
+        at java.io.BufferedWriter.flush(Unknown Source)
+        at java.io.PrintWriter.flush(Unknown Source)
+        at networking.ssl.client.EchoClient.<init>(EchoClient.java:29)
+        ... 1 more
+Caused by: sun.security.validator.ValidatorException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid
+
+        at sun.security.validator.PKIXValidator.doBuild(Unknown Source)
+        at sun.security.validator.PKIXValidator.engineValidate(Unknown Source)
+        at sun.security.validator.Validator.validate(Unknown Source)
+        at sun.security.ssl.X509TrustManagerImpl.validate(Unknown Source)
+        at sun.security.ssl.X509TrustManagerImpl.checkTrusted(Unknown Source)
+        at sun.security.ssl.X509TrustManagerImpl.checkServerTrusted(Unknown Source)
+        ... 17 more
+Caused by: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
+        at sun.security.provider.certpath.SunCertPathBuilder.build(Unknown Source)
+        at sun.security.provider.certpath.SunCertPathBuilder.engineBuild(Unknown Source)
+        at java.security.cert.CertPathBuilder.build(Unknown Source)
+        ... 23 more
+        
+//4.如果失败的话，那么KeyStore对象为空,会报如下异常
+结果服务端异常如下
+javax.net.ssl.SSLException: Received fatal alert: internal_error
+	at sun.security.ssl.Alerts.getSSLException(Alerts.java:208)
+	at sun.security.ssl.Alerts.getSSLException(Alerts.java:154)
+	at sun.security.ssl.SSLSocketImpl.recvAlert(SSLSocketImpl.java:1911)
+	at sun.security.ssl.SSLSocketImpl.readRecord(SSLSocketImpl.java:1027)
+	at sun.security.ssl.SSLSocketImpl.performInitialHandshake(SSLSocketImpl.java:1262)
+	at sun.security.ssl.SSLSocketImpl.readDataRecord(SSLSocketImpl.java:816)
+	at sun.security.ssl.AppInputStream.read(AppInputStream.java:102)
+	at sun.nio.cs.StreamDecoder.readBytes(StreamDecoder.java:283)
+	at sun.nio.cs.StreamDecoder.implRead(StreamDecoder.java:325)
+	at sun.nio.cs.StreamDecoder.read(StreamDecoder.java:177)
+	at java.io.InputStreamReader.read(InputStreamReader.java:184)
+	at java.io.BufferedReader.fill(BufferedReader.java:154)
+	at java.io.BufferedReader.readLine(BufferedReader.java:317)
+	at java.io.BufferedReader.readLine(BufferedReader.java:382)
+	at networking.ssl.server.EchoServer1.service(EchoServer1.java:109)
+	at networking.ssl.server.EchoServer1.main(EchoServer1.java:31)
+	
+客户端异常	
+javax.net.ssl.SSLException: Connection has been shutdown: javax.net.ssl.SSLException: java.lang.RuntimeException: Unexpected error: java.security.InvalidAlgorithmParameterException: the trustAnchors parameter must be non-empty
+	at sun.security.ssl.SSLSocketImpl.checkEOF(SSLSocketImpl.java:1426)
+	at sun.security.ssl.AppInputStream.read(AppInputStream.java:92)
+	at sun.nio.cs.StreamDecoder.readBytes(StreamDecoder.java:283)
+	at sun.nio.cs.StreamDecoder.implRead(StreamDecoder.java:325)
+	at sun.nio.cs.StreamDecoder.read(StreamDecoder.java:177)
+	at java.io.InputStreamReader.read(InputStreamReader.java:184)
+	at java.io.BufferedReader.fill(BufferedReader.java:154)
+	at java.io.BufferedReader.readLine(BufferedReader.java:317)
+	at java.io.BufferedReader.readLine(BufferedReader.java:382)
+	at networking.ssl.client.EchoClient2.<init>(EchoClient2.java:42)
+	at networking.ssl.client.EchoClient2.main(EchoClient2.java:19)
+Caused by: javax.net.ssl.SSLException: java.lang.RuntimeException: Unexpected error: java.security.InvalidAlgorithmParameterException: the trustAnchors parameter must be non-empty
+	at sun.security.ssl.Alerts.getSSLException(Alerts.java:208)
+	at sun.security.ssl.SSLSocketImpl.fatal(SSLSocketImpl.java:1836)
+	at sun.security.ssl.SSLSocketImpl.fatal(SSLSocketImpl.java:1794)
+	at sun.security.ssl.SSLSocketImpl.handleException(SSLSocketImpl.java:1777)
+	at sun.security.ssl.SSLSocketImpl.handleException(SSLSocketImpl.java:1703)
+	at sun.security.ssl.AppOutputStream.write(AppOutputStream.java:90)
+	at sun.nio.cs.StreamEncoder.writeBytes(StreamEncoder.java:221)
+	at sun.nio.cs.StreamEncoder.implFlushBuffer(StreamEncoder.java:291)
+	at sun.nio.cs.StreamEncoder.implFlush(StreamEncoder.java:295)
+	at sun.nio.cs.StreamEncoder.flush(StreamEncoder.java:141)
+	at java.io.OutputStreamWriter.flush(OutputStreamWriter.java:229)
+	at java.io.BufferedWriter.flush(BufferedWriter.java:254)
+	at java.io.PrintWriter.flush(PrintWriter.java:320)
+	at networking.ssl.client.EchoClient2.<init>(EchoClient2.java:39)
+	... 1 more
+Caused by: java.lang.RuntimeException: Unexpected error: java.security.InvalidAlgorithmParameterException: the trustAnchors parameter must be non-empty
+	at sun.security.validator.PKIXValidator.<init>(PKIXValidator.java:90)
+	at sun.security.validator.Validator.getInstance(Validator.java:179)
+	at sun.security.ssl.X509TrustManagerImpl.getValidator(X509TrustManagerImpl.java:314)
+	at sun.security.ssl.X509TrustManagerImpl.checkTrustedInit(X509TrustManagerImpl.java:173)
+	at sun.security.ssl.X509TrustManagerImpl.checkTrusted(X509TrustManagerImpl.java:186)
+	at sun.security.ssl.X509TrustManagerImpl.checkServerTrusted(X509TrustManagerImpl.java:126)
+	at sun.security.ssl.ClientHandshaker.serverCertificate(ClientHandshaker.java:1319)
+	at sun.security.ssl.ClientHandshaker.processMessage(ClientHandshaker.java:154)
+	at sun.security.ssl.Handshaker.processLoop(Handshaker.java:868)
+	at sun.security.ssl.Handshaker.process_record(Handshaker.java:804)
+	at sun.security.ssl.SSLSocketImpl.readRecord(SSLSocketImpl.java:966)
+	at sun.security.ssl.SSLSocketImpl.performInitialHandshake(SSLSocketImpl.java:1262)
+	at sun.security.ssl.SSLSocketImpl.writeRecord(SSLSocketImpl.java:680)
+	at sun.security.ssl.AppOutputStream.write(AppOutputStream.java:85)
+	... 9 more
+Caused by: java.security.InvalidAlgorithmParameterException: the trustAnchors parameter must be non-empty
+	at java.security.cert.PKIXParameters.setTrustAnchors(PKIXParameters.java:200)
+	at java.security.cert.PKIXParameters.<init>(PKIXParameters.java:120)
+	at java.security.cert.PKIXBuilderParameters.<init>(PKIXBuilderParameters.java:104)
+	at sun.security.validator.PKIXValidator.<init>(PKIXValidator.java:88)
+	... 22 more
+	
+-----------------------------------------------------------------------------------------------------------
+Socket阻塞IO部分
+1.通过BufferedReader接收数据时，发送数据的时候必须要有换行符
+	如果发送是通过BufferedWriter,则参照如下写法
+	writer.println(content);
+	writer.flush();
+	如果是通过socket.getOutputStream()，则应该如下写法,\r\n不能少，因为读的时候需要
+	socket.getOutputStream().write("hello world\r\n")
+2.通过socket.getInputStream()接收数据时
+	如果发送是通过BufferedWriter,则参照如下写法
+	writer.println(content);
+	writer.flush();
+	如果是通过socket.getOutputStream()，则应该如下写法,但\r\n不是必须的，没有也可以读到
+	socket.getOutputStream().write("hello world\r\n")
+
+3.刷新流的几种方式
+	调用flush()会自动刷新流
+	调用socket.getOutputStream().write()会自动刷新流
+	当输出数据的大小超过了发送缓冲区的大小时会自动刷新流
+	
+4.当接收缓冲区设置的小的时候，就有可能导致接收的次数变多，收到的数据一旦超过了接收缓冲区，就会自动触发接收
+	
+
+
