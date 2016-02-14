@@ -6,7 +6,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 /**
- * 测试服务端能够接收客户端的连接数目
+ * 对应Client4
  * 
  * @author smwang
  * 
@@ -48,6 +48,7 @@ public class Server4 {
 					System.out.println(new String(b, 0, n));
 			} while (n != -1);
 			
+			System.out.println("end");
 		}
 	}
 }

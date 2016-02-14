@@ -1,6 +1,7 @@
 package networking.io.client;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -26,7 +27,7 @@ public class Client1 {
 	private Socket socket;
 
 	public static void main(String[] args) throws UnknownHostException, IOException {
-		new Client1().communicate2();
+		new Client1().communicate();
 	}
 
 	public Client1() throws UnknownHostException, IOException {
@@ -90,6 +91,34 @@ public class Client1 {
 
 			System.out.println("line=" + line);
 			writer.println(line);
+			writer.flush();
+		}
+		readerLocal.close();
+		socket.close();
+	}
+	
+	/**
+	 * 超出发送缓冲区的大小后自动刷新流从而可以让服务器端接收到
+	 * 
+	 * @throws IOException
+	 */
+	private void communicate3() throws IOException {
+		BufferedWriter writer = Util.getBufferedWriter(socket);
+
+		BufferedReader readerLocal = new BufferedReader(new InputStreamReader(
+				new FileInputStream("D:\\hm-webapp.log.2")));
+		String line = null;
+
+		// 控制台输入，按回车返回一行的值给line
+		while ((line = readerLocal.readLine()) != null && line.length() != 0) {
+
+			System.out.println("line=" + line);
+			writer.write(line);
+			writer.newLine();
+//			writer.write(line + "\r\n");
+			
+			//不用flush，超出缓冲区大小时，缓冲区会自动刷新,刷到操作系统用于写到网络中 
+			writer.flush();
 		}
 		readerLocal.close();
 		socket.close();

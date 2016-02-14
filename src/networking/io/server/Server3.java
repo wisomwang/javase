@@ -76,9 +76,12 @@ public class Server3 {
 				sb.append("Content-type: text/html;charset=GBK\r\n");
 				sb.append("Content-length: 67\r\n");
 				sb.append("\r\n");
-				sb.append("<html><head><title>helloapp</title></head><body>hello</body></html>");
+				sb.append("<html><head><title>helloapp</title></head><body>hello</body></html>\r\n");
 				outputStream.write(sb.toString().getBytes());
-				socket.shutdownOutput();
+				//执行到这里，ClientUnknown可以接收到消息，但接收完消失后会在socketIn.read(buff)阻赛，直到
+				//调用如下其中一行的代码后，才会接收到socketIn.read(buff)返回-1，从而程序结束
+//				socket.shutdownOutput();
+				socket.close();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

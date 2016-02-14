@@ -63,6 +63,12 @@ public class Server1 {
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
+			} finally {
+				try {
+					socket.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 			System.out.println("Handle this client over");
 		}

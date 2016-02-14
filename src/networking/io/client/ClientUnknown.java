@@ -10,6 +10,9 @@ import java.net.UnknownHostException;
 
 import networking.io.Util;
 
+/**
+ * 模仿HttpClient,启动Server3
+ * */
 public class ClientUnknown {
 	private static final int PORT = 8088;
 	private static final String HOST = "localhost";
@@ -25,7 +28,7 @@ public class ClientUnknown {
 
 		// 默认的缓冲大小是8192个字节
 		System.out.println("Default send buffer size is " + socket.getSendBufferSize());
-		socket.setSendBufferSize(5);
+		// socket.setSendBufferSize(5);
 
 		// 设置连接超时时间，当主机名是存在的情况下，如果连接超时，就会报SocketTimeOutException
 		// 如果主机名找不到，就会报UnknownHostException
@@ -56,9 +59,10 @@ public class ClientUnknown {
 		int len = -1;
 		while ((len = socketIn.read(buff)) != -1) {
 			buffer.write(buff, 0, len);
+			System.out.println(buffer.toString());
 		}
 		System.out.println(buffer.toString());
-
+		System.out.println("end");
 		socket.close();
 	}
 }

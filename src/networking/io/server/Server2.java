@@ -6,7 +6,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 /**
- * 用原始的读输入流方式来读取客户端的发送过来的数据
+ * 用原始的读输入流方式来读取客户端的发送过来的数据，对应Client2
  * 
  * @author smwang
  * 
@@ -46,7 +46,7 @@ public class Server2 {
 				System.out.println("in");
 				System.out.println(new String(buffer, 0, length));
 			}
-
+			System.out.println("end");
 		}
 	}
 }

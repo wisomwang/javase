@@ -52,6 +52,8 @@ public class Client2 {
 		//通过PrintWriter输出时，必须要flush，有没有换行符不要紧，换行符取决于接收端的方式
 		PrintWriter writer = Util.getWriter(socket);
 		writer.println("you are from south korea\r\n");
+		//调用flush()，假设数据已经接收完，然后服务端调用inputStream.read(buffer)不会返回-1,会一直阻塞，直到调用
+		//socket.close() or socket.shutdownOutput() inputStream.read(buffer)才会返回-1
 		writer.flush();
 		
 		socket.close();
