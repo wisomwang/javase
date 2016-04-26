@@ -2,7 +2,7 @@ package networking.nio.client;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.channels.ClosedChannelException;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -11,8 +11,10 @@ import java.util.Set;
 
 public class Client1 {
 
-	private SocketChannel channel;
+	private SocketChannel socketChannel;
 	private Selector selector;
+	
+	private boolean running = true;
 
 	public static void main(String[] args) {
 		new Client1().communicate();
@@ -22,21 +24,14 @@ public class Client1 {
 		try {
 			selector = Selector.open();
 
-			channel = SocketChannel.open();
-			// channel.socket().connect(new InetSocketAddress("localhost",
-			// 8088));
-			channel.configureBlocking(false);
-			channel.connect(new InetSocketAddress("localhost", 8088));
-			System.out.println("Client build connection with server:" + channel.getRemoteAddress());
+			socketChannel = SocketChannel.open();
+			socketChannel.configureBlocking(false);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 
 	private void communicate() {
-		try {
-			channel.register(selector, SelectionKey.OP_CONNECT);
-
 			//selector.select() > 0会一直满足条件，一直打印connected
 //			while (selector.select() > 0) {
 //				Set<SelectionKey> selectedKeys = selector.selectedKeys();
@@ -101,34 +96,101 @@ public class Client1 {
 //				}
 //			}
 			
-			//第二次循环阻塞等待读
-			while (selector.select() > 0) {
+		// 第二次循环阻塞等待读
+		try {
+			doConnect();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+			System.exit(1);
+		}
+		
+		while (running) {
+			SelectionKey selectionKey = null;
+			try {
+				selector.select();
 				Set<SelectionKey> selectedKeys = selector.selectedKeys();
 				Iterator<SelectionKey> iterator = selectedKeys.iterator();
 
 				while (iterator.hasNext()) {
-					SelectionKey selectionKey = iterator.next();
+					selectionKey = iterator.next();
 					iterator.remove();
 
+					SocketChannel sc = (SocketChannel) selectionKey.channel();
+
 					if (selectionKey.isConnectable()) {
-						if (channel.isConnectionPending()) {
-							channel.finishConnect();
+						if (socketChannel.finishConnect()) {
+							socketChannel.register(selector, SelectionKey.OP_READ);
+							doWrite(sc);
+						} else {
+							System.out.println("Connection failed");
+							System.exit(1);
 						}
-						channel.register(selector, SelectionKey.OP_READ);
+
 					} else if (selectionKey.isReadable()) {
-						System.out.println("reading");
+						SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
+						ByteBuffer readBuffer = ByteBuffer.allocate(1024);
+						while (socketChannel.read(readBuffer) > 0) {
+							readBuffer.flip();
+							byte[] readBytes = new byte[readBuffer.remaining()];
+							readBuffer.get(readBytes);
+							System.out.println("Client receive response:" + new String(readBytes));
+						}
+						running = false;
 					} else if (selectionKey.isWritable()) {
-						System.out.println("writing");
+						System.out.println("client writing");
 					}
 				}
+			} catch (IOException e) {
+				e.printStackTrace();
+				
+				if (selectionKey != null) {
+					selectionKey.cancel();
+					if (selectionKey.channel() != null) {
+						try {
+							selectionKey.channel().close();
+						} catch (IOException e1) {
+							e1.printStackTrace();
+						}
+					}
+				}
+				running = false;
+			} finally {
 			}
-
-		} catch (ClosedChannelException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
 		}
+		
+		if(selector!=null)
+		{
+			try {
+				selector.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
 		System.out.println("end");
+	}
+
+	private void doConnect() throws IOException {
+		// 如果连接成功，注册读事件
+		if (socketChannel.connect(new InetSocketAddress("localhost", 8088))) {
+			socketChannel.register(selector, SelectionKey.OP_READ);
+			System.out.println("Client build connection with server:" + socketChannel.getRemoteAddress());
+
+			// 执行写，但这里的写可能写半包，不完整
+			doWrite(socketChannel);
+		} else {
+			// 如果这时候连接不成功，注解连接事件
+			socketChannel.register(selector, SelectionKey.OP_CONNECT);
+		}
+	}
+
+	private void doWrite(SocketChannel channel) throws IOException {
+		byte[] request = "QUERY TIME".getBytes();
+		ByteBuffer writeBuffer = ByteBuffer.allocate(request.length);
+		writeBuffer.put(request);
+		writeBuffer.flip();
+		while (writeBuffer.hasRemaining()) {
+			channel.write(writeBuffer);
+		}
 	}
 }
